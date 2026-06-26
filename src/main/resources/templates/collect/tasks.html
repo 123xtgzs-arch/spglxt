@@ -1,0 +1,448 @@
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/sidebar.css">
+    <title>采集任务管理 - 次元方舟视频管理系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; background: #f5f7fa; color: #333; }
+        .layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 250px; background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); color: white; position: fixed; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 2px 0 8px rgba(0,0,0,0.1); z-index: 100; }
+        .sidebar-header { padding: 2rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .sidebar-header .version { font-size: 0.75rem; opacity: 0.8; }
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: 1rem 0; }
+        .nav-section { margin-bottom: 1.5rem; }
+        .nav-section-title { padding: 0.5rem 1.5rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; font-weight: 600; }
+        .nav-item { display: flex; align-items: center; padding: 0.75rem 1.5rem; color: rgba(255,255,255,0.9); text-decoration: none; transition: all 0.3s; border-left: 3px solid transparent; }
+        .nav-item:hover { background: rgba(255,255,255,0.1); color: white; }
+        .nav-item.active { background: rgba(255,255,255,0.15); border-left-color: white; color: white; font-weight: 500; }
+        .nav-item .icon { margin-right: 0.75rem; font-size: 1.125rem; }
+        .main-content { flex: 1; margin-left: 250px; display: flex; flex-direction: column; }
+        .topbar { background: white; padding: 1rem 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .topbar h2 { font-size: 1.5rem; color: #333; }
+        .container { flex: 1; padding: 2rem; max-width: 1400px; width: 100%; }
+        .card { background: white; border-radius: 8px; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 2rem; }
+        .btn { display: inline-block; padding: 0.5rem 1.25rem; background: #667eea; color: white; text-decoration: none; border-radius: 6px; border: none; cursor: pointer; transition: all 0.3s; font-size: 0.875rem; font-weight: 500; }
+        .btn:hover { background: #5568d3; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(102,126,234,0.3); }
+        .footer { text-align: center; padding: 1.5rem; color: #999; font-size: 0.75rem; background: white; border-top: 1px solid #e8eaed; }
+        .menu-toggle { display: none; background: none; border: none; cursor: pointer; padding: 0.5rem; margin-right: 0.75rem; color: #667eea; flex-shrink: 0; }
+        .menu-toggle svg { display: block; }
+        @media (max-width: 768px) {
+            .menu-toggle { display: flex; align-items: center; justify-content: center; }
+            .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+            .sidebar.mobile-open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .topbar { padding: 1rem; }
+        }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 20px; }
+        .stat-card { padding: 1rem; border-radius: 8px; text-align: center; }
+        .stat-number { font-size: 24px; font-weight: bold; }
+        .stat-label { color: #666; font-size: 13px; margin-top: 4px; }
+        .progress-bar-wrap { background: #f0f0f0; border-radius: 10px; height: 16px; width: 100px; display: inline-block; overflow: hidden; vertical-align: middle; }
+        .progress-bar-inner { height: 100%; border-radius: 10px; transition: width 0.3s; background: linear-gradient(90deg, #667eea, #764ba2); }
+        .status-running, .status-pending { color: #1890ff; font-weight: 600; }
+        .status-completed { color: #52c41a; font-weight: 600; }
+        .status-stopped { color: #faad14; font-weight: 600; }
+        .status-failed { color: #ff4d4f; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header"><h1>🎬 次元方舟</h1><div class="version">Java v1.0.0</div></div>
+            <nav class="sidebar-nav">
+                <div class="nav-section"><div class="nav-section-title">主菜单</div>
+                    <a href="/dashboard" class="nav-item"><span class="icon">📊</span><span>仪表盘</span></a>
+                    <a href="/video/list" class="nav-item"><span class="icon">🎬</span><span>视频管理</span></a>
+                    <a href="#" class="nav-item"><span class="icon">📂</span><span>分类管理</span></a>
+                </div>
+                <div class="nav-section"><div class="nav-section-title">采集与工具</div>
+                    <a href="/collect/list" class="nav-item"><span class="icon">🔄</span><span>采集站点</span></a>
+                    <a href="/collect/namewords" class="nav-item"><span class="icon">📖</span><span>名称同义库</span></a>
+                    <a href="/collect/tasks" class="nav-item active"><span class="icon">📋</span><span>采集任务</span></a>
+                </div>
+                <div class="nav-section"><div class="nav-section-title">工具箱</div>
+                    <a href="/tool/link_gen" class="nav-item"><span class="icon">🔗</span><span>链接生成器</span></a>
+                    <a href="/tool/link_compare" class="nav-item"><span class="icon">🔍</span><span>链接对比器</span></a>
+                    <a href="/tool/merge" class="nav-item"><span class="icon">🔀</span><span>视频合并</span></a>
+                </div>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="topbar">
+                <div style="display: flex; align-items: center; min-width: 0;">
+                    <button class="menu-toggle" id="menuToggle" aria-label="菜单">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <h2>📋 采集任务管理</h2>
+                </div>
+                <div class="topbar-actions">
+                    <div class="user-info">
+                        <div class="user-avatar" sec:authentication="name">A</div>
+                        <span class="user-name" sec:authentication="name">admin</span>
+                    </div>
+                    <a href="/logout" class="logout-btn">退出登录</a>
+                </div>
+            </div>
+            <div class="container">
+                <div class="card">
+                    <!-- 统计卡片 -->
+                    <div class="stats-grid">
+                        <div class="stat-card" style="background: #f0f8ff;">
+                            <div class="stat-number" id="stat_running" style="color:#1890ff;">0</div>
+                            <div class="stat-label">运行中</div>
+                        </div>
+                        <div class="stat-card" style="background: #f6ffed;">
+                            <div class="stat-number" id="stat_completed" style="color:#52c41a;">0</div>
+                            <div class="stat-label">已完成</div>
+                        </div>
+                        <div class="stat-card" style="background: #fffbe6;">
+                            <div class="stat-number" id="stat_stopped" style="color:#faad14;">0</div>
+                            <div class="stat-label">已停止</div>
+                        </div>
+                    </div>
+
+                    <!-- 操作栏 -->
+                    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+                        <label style="font-size:13px;">自动刷新</label>
+                        <select id="refresh_interval" style="width:80px;padding:4px 8px; border: 1px solid #ddd; border-radius: 4px;" onchange="setRefresh()">
+                            <option value="5">5秒</option>
+                            <option value="10">10秒</option>
+                            <option value="30">30秒</option>
+                            <option value="0">关闭</option>
+                        </select>
+                        <button type="button" class="btn" style="background: #1890ff; color: white;" onclick="refreshTasks()">🔄 刷新</button>
+                        <button type="button" class="btn" style="background: #ff4d4f; color: white;" onclick="clearTasks()">🗑️ 清空任务</button>
+                        <span style="margin-left:auto; display: flex; gap: 8px; align-items: center;">
+                            <select id="new_task_site" style="width:180px;padding:4px 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <option th:each="site : ${sites}" th:value="${site.id}" th:text="${site.name}"></option>
+                            </select>
+                            <button type="button" class="btn" style="background: #52c41a; color: white;" onclick="createTask()">▶ 新建任务</button>
+                        </span>
+                    </div>
+
+                    <!-- 任务列表 -->
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #f5f5f5;">
+                                    <th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #e8e8e8;">任务ID</th>
+                                    <th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #e8e8e8;">采集站</th>
+                                    <th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #e8e8e8;">状态</th>
+                                    <th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #e8e8e8;">开始时间</th>
+                                    <th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #e8e8e8;">结束时间</th>
+                                    <th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #e8e8e8;">入库数</th>
+                                    <th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #e8e8e8;">进度</th>
+                                    <th style="padding: 12px 8px; text-align: left; border-bottom: 2px solid #e8e8e8;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="task_list">
+                                <tr><td colspan="8" style="text-align:center;color:#999;padding:30px;">加载中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 执行日志面板 -->
+                    <div id="log_panel" style="display:none;margin-top:20px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                            <h3 style="margin:0;font-size:16px;">📝 执行日志 - <span id="log_task_name"></span></h3>
+                            <button type="button" class="btn" onclick="closeLogPanel()">关闭</button>
+                        </div>
+                        <div id="log_content" style="background:#1e1e1e;color:#d4d4d4;padding:15px;border-radius:4px;max-height:400px;overflow-y:auto;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.6;">
+                            <div style="color:#888;">暂无日志</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="footer"><p>次元方舟视频管理系统 v1.0.0 &copy; 2024 | Java Spring Boot 强力驱动</p></div>
+        </main>
+    </div>
+    <script>
+        var refreshTimer = null;
+
+        function setRefresh() {
+            if (refreshTimer) clearInterval(refreshTimer);
+            var interval = parseInt(document.getElementById('refresh_interval').value);
+            if (interval > 0) {
+                refreshTimer = setInterval(refreshTasks, interval * 1000);
+            }
+        }
+
+        function refreshTasks() {
+            fetch('/collect/task/status')
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    if (res.code !== 200) {
+                        document.getElementById('task_list').innerHTML = '<tr><td colspan="8" style="text-align:center;color:#f00;padding:20px;">加载失败: ' + (res.message || '未知错误') + '</td></tr>';
+                        return;
+                    }
+                    renderTasks(res.data || []);
+                })
+                .catch(function(err) {
+                    console.error('加载任务失败:', err);
+                    document.getElementById('task_list').innerHTML = '<tr><td colspan="8" style="text-align:center;color:#f00;padding:20px;">❌ 加载失败（请求超时或网络错误）</td></tr>';
+                });
+        }
+
+        function renderTasks(tasks) {
+            var tbody = document.getElementById('task_list');
+            var running = 0, completed = 0, stopped = 0;
+
+            if (!tasks || tasks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999;padding:30px;">暂无采集任务</td></tr>';
+                updateStats(0, 0, 0);
+                return;
+            }
+
+            var html = '';
+            for (var i = 0; i < tasks.length; i++) {
+                var t = tasks[i];
+                if (t.status === 'running' || t.status === 'pending') { 
+                    running++;
+                }
+                else if (t.status === 'completed') completed++;
+                else stopped++;
+
+                var statusClass = 'status-' + t.status;
+                var statusText = {'running':'运行中','pending':'等待中','completed':'已完成','stopped':'已停止','failed':'失败'}[t.status] || t.status;
+
+                var totalCount = (t.add_count || 0) + (t.update_count || 0);
+                var percent = 0;
+                if (t.total_pages > 0) {
+                    percent = Math.round((t.current_page / t.total_pages) * 100);
+                    // 限制最大100%
+                    percent = Math.min(percent, 100);
+                }
+
+                html += '<tr style="border-bottom: 1px solid #f0f0f0;">';
+                html += '<td style="padding: 12px 8px; font-size:11px;font-family:monospace;">' + t.id.substring(0,8) + '</td>';
+                html += '<td style="padding: 12px 8px;">' + escapeHtml(t.site_name || '') + '</td>';
+                html += '<td style="padding: 12px 8px;"><span class="' + statusClass + '">' + statusText + '</span></td>';
+                html += '<td style="padding: 12px 8px; font-size:12px;">' + (t.start_time || '-') + '</td>';
+                html += '<td style="padding: 12px 8px; font-size:12px;">' + (t.end_time || '-') + '</td>';
+                html += '<td style="padding: 12px 8px;"><span style="color:#52c41a;">' + totalCount + '</span> <span style="font-size:11px;color:#888;">(新' + (t.add_count||0) + '/更' + (t.update_count||0) + ')</span></td>';
+                html += '<td style="padding: 12px 8px;">';
+                html += '<div class="progress-bar-wrap"><div class="progress-bar-inner" style="width:' + percent + '%;"></div></div>';
+                html += ' <span style="font-size:11px;">' + (t.progress || '0/0') + '</span>';
+                html += '</td>';
+                html += '<td style="padding: 12px 8px;">';
+                if (t.status === 'running' || t.status === 'pending') {
+                    html += '<button class="btn btn-stop" style="background: #ff4d4f; color: white; padding: 4px 12px; font-size: 12px;" data-task-id="' + t.id + '">停止</button> ';
+                    if (!t.auto_execute) {
+                        html += '<button class="btn btn-resume" style="background: #52c41a; color: white; padding: 4px 12px; font-size: 12px;" data-task-id="' + t.id + '">继续</button> ';
+                    }
+                }
+                if (t.logs && t.logs.length > 0) {
+                    html += '<button class="btn btn-log" style="background: #1890ff; color: white; padding: 4px 12px; font-size: 12px;" data-task-id="' + t.id + '" data-site-name="' + escapeHtml(t.site_name) + '">📝 日志</button>';
+                }
+                html += '</td>';
+                html += '</tr>';
+            }
+            tbody.innerHTML = html;
+            updateStats(running, completed, stopped);
+        }
+
+        var resumedTasks = {};
+        function resumeTask(taskId, silent) {
+            if (resumedTasks[taskId]) return;
+            resumedTasks[taskId] = true;
+            var formData = new FormData();
+            formData.append('taskId', taskId);
+            fetch('/collect/task/resume', { method: 'POST', body: formData })
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    if (!silent && res.code !== 200 && res.code !== 0) {
+                        alert('❌ ' + (res.message || res.msg || '恢复失败'));
+                    }
+                    refreshTasks();
+                })
+                .catch(function(err) {
+                    delete resumedTasks[taskId];
+                    if (!silent) alert('❌ 请求失败: ' + err.message);
+                });
+        }
+
+        function updateStats(running, completed, stopped) {
+            document.getElementById('stat_running').textContent = running;
+            document.getElementById('stat_completed').textContent = completed;
+            document.getElementById('stat_stopped').textContent = stopped;
+        }
+
+        function createTask() {
+            var btn = event.target;
+            var siteId = document.getElementById('new_task_site').value;
+            if (!siteId) {
+                alert('请选择采集站');
+                return;
+            }
+            
+            // 防止重复提交
+            if (btn.disabled) return;
+            btn.disabled = true;
+            var originalText = btn.textContent;
+            btn.textContent = '⏳ 创建中...';
+            
+            var formData = new FormData();
+            formData.append('siteId', siteId);
+            
+            fetch('/collect/task/start', { method: 'POST', body: formData })
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    
+                    if (res.code === 200 || res.code === 0) {
+                        var taskIdShort = res.data ? res.data.substring(0, 8) : '';
+                        alert('✅ 任务已创建！\n任务ID: ' + taskIdShort + '\n\n任务在服务端后台执行，可以关闭此页面');
+                        refreshTasks();
+                    } else {
+                        alert('❌ ' + (res.message || res.msg || '创建失败'));
+                    }
+                })
+                .catch(function(err) {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    console.error('创建任务失败:', err);
+                    alert('❌ 请求失败: ' + err.message);
+                });
+        }
+
+        function stopTask(taskId) {
+            if (!confirm('确定停止任务吗？')) return;
+            
+            var formData = new FormData();
+            formData.append('taskId', taskId);
+            
+            fetch('/collect/task/stop', { method: 'POST', body: formData })
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    if (res.code === 200 || res.code === 0) {
+                        refreshTasks();
+                    } else {
+                        alert('❌ 停止失败: ' + (res.message || res.msg));
+                    }
+                })
+                .catch(function(err) {
+                    console.error('停止任务失败:', err);
+                    alert('❌ 请求失败: ' + err.message);
+                });
+        }
+
+        function clearTasks() {
+            if (!confirm('确定清空所有任务记录？')) return;
+            fetch('/collect/task/clear', { method: 'POST' })
+                .then(function(r) { return r.json(); })
+                .then(function() { refreshTasks(); });
+        }
+
+        var currentLogTaskId = '';
+        function showLogs(taskId, siteName) {
+            currentLogTaskId = taskId;
+            document.getElementById('log_task_name').textContent = siteName + ' (' + taskId.substring(0, 8) + ')';
+            document.getElementById('log_panel').style.display = 'block';
+            updateLogs();
+            
+            // 滚动到日志面板
+            document.getElementById('log_panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function updateLogs() {
+            if (!currentLogTaskId) return;
+            
+            fetch('/collect/task/status')
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    if (res.code === 200 && res.data) {
+                        var task = res.data.find(function(t) { return t.id === currentLogTaskId; });
+                        if (task && task.logs && task.logs.length > 0) {
+                            var logHtml = '';
+                            for (var i = 0; i < task.logs.length; i++) {
+                                var log = task.logs[i];
+                                var color = '#d4d4d4';
+                                if (log.indexOf('✅') >= 0) color = '#52c41a';
+                                else if (log.indexOf('❌') >= 0) color = '#ff4d4f';
+                                else if (log.indexOf('第') >= 0 && log.indexOf('页') >= 0) color = '#1890ff';
+                                logHtml += '<div style="color:' + color + ';">' + escapeHtml(log) + '</div>';
+                            }
+                            document.getElementById('log_content').innerHTML = logHtml;
+                            
+                            // 自动滚动到底部
+                            var logContent = document.getElementById('log_content');
+                            logContent.scrollTop = logContent.scrollHeight;
+                        } else {
+                            document.getElementById('log_content').innerHTML = '<div style="color:#888;">暂无日志</div>';
+                        }
+                    }
+                });
+        }
+
+        function closeLogPanel() {
+            currentLogTaskId = '';
+            document.getElementById('log_panel').style.display = 'none';
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            var div = document.createElement('div');
+            div.appendChild(document.createTextNode(str));
+            return div.innerHTML;
+        }
+
+        // 如果日志面板打开，定时更新日志
+        setInterval(function() {
+            if (currentLogTaskId) {
+                updateLogs();
+            }
+        }, 2000); // 每2秒更新一次日志
+
+        // 初始化
+        refreshTasks();
+        setRefresh();
+
+        // 使用事件委托处理按钮点击,避免大量内联事件监听器
+        document.getElementById('task_list').addEventListener('click', function(e) {
+            var target = e.target;
+            
+            // 停止任务按钮
+            if (target.classList.contains('btn-stop')) {
+                var taskId = target.getAttribute('data-task-id');
+                if (taskId) stopTask(taskId);
+                return;
+            }
+
+            // 继续后台执行
+            if (target.classList.contains('btn-resume')) {
+                var taskId = target.getAttribute('data-task-id');
+                if (taskId) resumeTask(taskId, false);
+                return;
+            }
+            
+            // 查看日志按钮
+            if (target.classList.contains('btn-log')) {
+                var taskId = target.getAttribute('data-task-id');
+                var siteName = target.getAttribute('data-site-name');
+                if (taskId) showLogs(taskId, siteName);
+                return;
+            }
+        });
+
+        // 移动端菜单
+        (function() {
+            var menuToggle = document.getElementById('menuToggle');
+            var sidebar = document.getElementById('sidebar');
+            if (menuToggle && sidebar) {
+                menuToggle.addEventListener('click', function() { sidebar.classList.toggle('mobile-open'); });
+                var navLinks = sidebar.querySelectorAll('.nav-item');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() { if (window.innerWidth <= 768) { sidebar.classList.remove('mobile-open'); } });
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/sidebar.css">
+    <title>视频合并 - 次元方舟视频管理系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; background: #f5f7fa; color: #333; }
+        .layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 250px; background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); color: white; position: fixed; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 2px 0 8px rgba(0,0,0,0.1); z-index: 100; }
+        .sidebar-header { padding: 2rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .sidebar-header .version { font-size: 0.75rem; opacity: 0.8; }
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: 1rem 0; }
+        .nav-section { margin-bottom: 1.5rem; }
+        .nav-section-title { padding: 0.5rem 1.5rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; font-weight: 600; }
+        .nav-item { display: flex; align-items: center; padding: 0.75rem 1.5rem; color: rgba(255,255,255,0.9); text-decoration: none; transition: all 0.3s; border-left: 3px solid transparent; }
+        .nav-item:hover { background: rgba(255,255,255,0.1); color: white; }
+        .nav-item.active { background: rgba(255,255,255,0.15); border-left-color: white; color: white; font-weight: 500; }
+        .nav-item .icon { margin-right: 0.75rem; font-size: 1.125rem; }
+        .main-content { flex: 1; margin-left: 250px; display: flex; flex-direction: column; }
+        .topbar { background: white; padding: 1rem 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .topbar h2 { font-size: 1.5rem; color: #333; }
+        .container { flex: 1; padding: 2rem; max-width: 1400px; width: 100%; }
+        .card { background: white; border-radius: 8px; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 2rem; }
+        .btn { display: inline-block; padding: 0.5rem 1.25rem; background: #667eea; color: white; text-decoration: none; border-radius: 6px; border: none; cursor: pointer; transition: all 0.3s; font-size: 0.875rem; font-weight: 500; }
+        .btn:hover { background: #5568d3; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(102,126,234,0.3); }
+        .footer { text-align: center; padding: 1.5rem; color: #999; font-size: 0.75rem; background: white; border-top: 1px solid #e8eaed; }
+        .menu-toggle { display: none; background: none; border: none; cursor: pointer; padding: 0.5rem; margin-right: 0.75rem; color: #667eea; flex-shrink: 0; }
+        .menu-toggle svg { display: block; }
+        @media (max-width: 768px) {
+            .menu-toggle { display: flex; align-items: center; justify-content: center; }
+            .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+            .sidebar.mobile-open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .topbar { padding: 1rem; }
+        }
+        .merge-group { background: #f9f9f9; border: 1px solid #e8e8e8; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; }
+        .merge-group-title { font-weight: 600; font-size: 14px; color: #333; margin-bottom: 8px; }
+        .merge-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px dashed #eee; font-size: 13px; }
+        .merge-item:last-child { border-bottom: none; }
+        .merge-item .vid { color: #888; min-width: 60px; }
+        .merge-item .vname { color: #333; flex: 1; }
+        .merge-item .vinfo { color: #aaa; font-size: 12px; }
+        .merge-item .vactions { display: flex; gap: 4px; }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header"><h1>🎬 次元方舟</h1><div class="version">Java v1.0.0</div></div>
+            <nav class="sidebar-nav">
+                <div class="nav-section"><div class="nav-section-title">主菜单</div>
+                    <a href="/dashboard" class="nav-item"><span class="icon">📊</span><span>仪表盘</span></a>
+                    <a href="/video/list" class="nav-item"><span class="icon">🎬</span><span>视频管理</span></a>
+                    <a href="#" class="nav-item"><span class="icon">📂</span><span>分类管理</span></a>
+                </div>
+                <div class="nav-section"><div class="nav-section-title">采集与工具</div>
+                    <a href="/collect/list" class="nav-item"><span class="icon">🔄</span><span>采集站点</span></a>
+                    <a href="/collect/namewords" class="nav-item"><span class="icon">📖</span><span>名称同义库</span></a>
+                    <a href="/collect/tasks" class="nav-item"><span class="icon">📋</span><span>采集任务</span></a>
+                </div>
+                <div class="nav-section"><div class="nav-section-title">工具箱</div>
+                    <a href="/tool/link_gen" class="nav-item"><span class="icon">🔗</span><span>链接生成器</span></a>
+                    <a href="/tool/link_compare" class="nav-item"><span class="icon">🔍</span><span>链接对比器</span></a>
+                    <a href="/tool/merge" class="nav-item active"><span class="icon">🔀</span><span>视频合并</span></a>
+                </div>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="topbar">
+                <div style="display: flex; align-items: center; min-width: 0;">
+                    <button class="menu-toggle" id="menuToggle" aria-label="菜单">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <h2>🔀 视频合并</h2>
+                </div>
+                <div class="topbar-actions">
+                    <div class="user-info">
+                        <div class="user-avatar" sec:authentication="name">A</div>
+                        <span class="user-name" sec:authentication="name">admin</span>
+                    </div>
+                    <a href="/logout" class="logout-btn">退出登录</a>
+                </div>
+            </div>
+            <div class="container">
+                <div class="card">
+                    <p style="color:#888;font-size:13px;margin-bottom:16px;">自动检测数据库中名称重复的视频，选择保留哪条并将播放地址合并，删除多余的。</p>
+
+                    <div style="margin-bottom:16px;">
+                        <button type="button" class="btn" style="background: #667eea; color: white;" onclick="detectDuplicates()">🔍 检测重复视频</button>
+                        <span id="detect_status" style="margin-left:12px;font-size:13px;color:#888;"></span>
+                    </div>
+
+                    <div id="duplicate_list"></div>
+                </div>
+            </div>
+            <div class="footer"><p>次元方舟视频管理系统 v1.0.0 &copy; 2024 | Java Spring Boot 强力驱动</p></div>
+        </main>
+    </div>
+    <script>
+        function detectDuplicates() {
+            var statusEl = document.getElementById('detect_status');
+            var listEl = document.getElementById('duplicate_list');
+            statusEl.textContent = '正在检测...';
+            listEl.innerHTML = '';
+
+            fetch('/tool/merge/search')
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    if (res.code !== 200) {
+                        statusEl.textContent = '检测失败：' + (res.message || '未知错误');
+                        return;
+                    }
+                    var data = res.data;
+                    if (data.length === 0) {
+                        statusEl.textContent = '未发现重复视频';
+                        listEl.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">数据库中没有重复的视频名称 �</p>';
+                        return;
+                    }
+                    statusEl.textContent = '发现 ' + data.length + ' 组重复视频';
+                    renderDuplicates(data);
+                })
+                .catch(function(e) {
+                    statusEl.textContent = '请求失败：' + e.message;
+                });
+        }
+
+        function renderDuplicates(data) {
+            var listEl = document.getElementById('duplicate_list');
+            var html = '';
+
+            for (var i = 0; i < data.length; i++) {
+                var group = data[i];
+                html += '<div class="merge-group" id="group_' + i + '">';
+                html += '<div class="merge-group-title">📌 ' + escapeHtml(group.vod_name) + ' <span style="color:#888;font-size:12px;">（' + group.count + '条重复）</span></div>';
+
+                for (var j = 0; j < group.videos.length; j++) {
+                    var v = group.videos[j];
+                    
+                    var playFroms = (v.vod_play_from || '').split('$$$').filter(function(x) { return x; });
+                    var playFromText = playFroms.length > 0 ? playFroms.join(', ') : '-';
+                    
+                    html += '<div class="merge-item">';
+                    html += '<span class="vid">ID:' + v.vod_id + '</span>';
+                    html += '<span class="vname">' + escapeHtml(v.vod_name) + '</span>';
+                    html += '<span class="vinfo">' + escapeHtml(v.vod_remarks || '-') + ' | ' + escapeHtml(playFromText) + '</span>';
+                    html += '<span class="vactions">';
+                    html += '<button class="btn btn-sm" style="background: #28a745; color: white; padding: 4px 12px; font-size: 12px;" onclick="mergeToThis(' + i + ',' + v.vod_id + ')">保留此条</button>';
+                    html += '</span>';
+                    html += '</div>';
+                }
+
+                html += '</div>';
+            }
+
+            listEl.innerHTML = html;
+        }
+
+        function mergeToThis(groupIdx, targetId) {
+            if (!confirm('确定保留 ID:' + targetId + ' 并将其他重复视频的播放地址合并到此条？\n其他重复视频将被删除！')) return;
+
+            var groupEl = document.getElementById('group_' + groupIdx);
+            var items = groupEl.querySelectorAll('.merge-item');
+            var sourceIds = [];
+            for (var i = 0; i < items.length; i++) {
+                var vid = parseInt(items[i].querySelector('.vid').textContent.replace('ID:', ''));
+                if (vid !== targetId) sourceIds.push(vid);
+            }
+
+            if (sourceIds.length === 0) { 
+                alert('没有需要合并的'); 
+                return; 
+            }
+
+            mergeSequential(targetId, sourceIds, 0, function() {
+                groupEl.innerHTML = '<p style="color:#52c41a;padding:8px;">✅ 合并完成，已保留 ID:' + targetId + '</p>';
+            });
+        }
+
+        function mergeSequential(targetId, sourceIds, index, callback) {
+            if (index >= sourceIds.length) { 
+                callback(); 
+                return; 
+            }
+
+            var formData = new FormData();
+            formData.append('target_id', targetId);
+            formData.append('source_id', sourceIds[index]);
+
+            fetch('/tool/merge/do', { method: 'POST', body: formData })
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    if (res.code !== 200) { 
+                        alert('合并失败：' + (res.message || '未知错误')); 
+                    }
+                    mergeSequential(targetId, sourceIds, index + 1, callback);
+                })
+                .catch(function(e) {
+                    alert('请求失败：' + e.message);
+                    mergeSequential(targetId, sourceIds, index + 1, callback);
+                });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            var div = document.createElement('div');
+            div.appendChild(document.createTextNode(str));
+            return div.innerHTML;
+        }
+
+        (function() {
+            var menuToggle = document.getElementById('menuToggle');
+            var sidebar = document.getElementById('sidebar');
+            if (menuToggle && sidebar) {
+                menuToggle.addEventListener('click', function() { sidebar.classList.toggle('mobile-open'); });
+                var navLinks = sidebar.querySelectorAll('.nav-item');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() { if (window.innerWidth <= 768) { sidebar.classList.remove('mobile-open'); } });
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

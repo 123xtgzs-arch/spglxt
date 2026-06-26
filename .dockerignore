@@ -1,0 +1,14 @@
+target/
+release/
+dist/
+dist-linux/
+tools/
+.git/
+.idea/
+*.iml
+launcher/
+deploy/*.zip
+spglxt*.zip
+release-test/
+logs/
+.env

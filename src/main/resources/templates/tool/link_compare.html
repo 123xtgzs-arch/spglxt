@@ -1,0 +1,238 @@
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/sidebar.css">
+    <title>链接对比器 - 次元方舟视频管理系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; background: #f5f7fa; color: #333; }
+        .layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 250px; background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); color: white; position: fixed; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 2px 0 8px rgba(0,0,0,0.1); z-index: 100; }
+        .sidebar-header { padding: 2rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .sidebar-header .version { font-size: 0.75rem; opacity: 0.8; }
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: 1rem 0; }
+        .nav-section { margin-bottom: 1.5rem; }
+        .nav-section-title { padding: 0.5rem 1.5rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; font-weight: 600; }
+        .nav-item { display: flex; align-items: center; padding: 0.75rem 1.5rem; color: rgba(255,255,255,0.9); text-decoration: none; transition: all 0.3s; border-left: 3px solid transparent; }
+        .nav-item:hover { background: rgba(255,255,255,0.1); color: white; }
+        .nav-item.active { background: rgba(255,255,255,0.15); border-left-color: white; color: white; font-weight: 500; }
+        .nav-item .icon { margin-right: 0.75rem; font-size: 1.125rem; }
+        .main-content { flex: 1; margin-left: 250px; display: flex; flex-direction: column; }
+        .topbar { background: white; padding: 1rem 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .topbar h2 { font-size: 1.5rem; color: #333; }
+        .container { flex: 1; padding: 2rem; max-width: 1400px; width: 100%; }
+        .card { background: white; border-radius: 8px; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 2rem; }
+        .btn { display: inline-block; padding: 0.5rem 1.25rem; background: #667eea; color: white; text-decoration: none; border-radius: 6px; border: none; cursor: pointer; transition: all 0.3s; font-size: 0.875rem; font-weight: 500; }
+        .btn:hover { background: #5568d3; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(102,126,234,0.3); }
+        .footer { text-align: center; padding: 1.5rem; color: #999; font-size: 0.75rem; background: white; border-top: 1px solid #e8eaed; }
+        .menu-toggle { display: none; background: none; border: none; cursor: pointer; padding: 0.5rem; margin-right: 0.75rem; color: #667eea; flex-shrink: 0; }
+        .menu-toggle svg { display: block; }
+        @media (max-width: 768px) {
+            .menu-toggle { display: flex; align-items: center; justify-content: center; }
+            .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+            .sidebar.mobile-open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .topbar { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header"><h1>🎬 次元方舟</h1><div class="version">Java v1.0.0</div></div>
+            <nav class="sidebar-nav">
+                <div class="nav-section"><div class="nav-section-title">主菜单</div>
+                    <a href="/dashboard" class="nav-item"><span class="icon">📊</span><span>仪表盘</span></a>
+                    <a href="/video/list" class="nav-item"><span class="icon">🎬</span><span>视频管理</span></a>
+                    <a href="#" class="nav-item"><span class="icon">📂</span><span>分类管理</span></a>
+                </div>
+                <div class="nav-section"><div class="nav-section-title">采集与工具</div>
+                    <a href="/collect/list" class="nav-item"><span class="icon">🔄</span><span>采集站点</span></a>
+                    <a href="/collect/namewords" class="nav-item"><span class="icon">📖</span><span>名称同义库</span></a>
+                    <a href="/collect/tasks" class="nav-item"><span class="icon">📋</span><span>采集任务</span></a>
+                </div>
+                <div class="nav-section"><div class="nav-section-title">工具箱</div>
+                    <a href="/tool/link_gen" class="nav-item"><span class="icon">🔗</span><span>链接生成器</span></a>
+                    <a href="/tool/link_compare" class="nav-item active"><span class="icon">🔍</span><span>链接对比器</span></a>
+                    <a href="/tool/merge" class="nav-item"><span class="icon">🔀</span><span>视频合并</span></a>
+                </div>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="topbar">
+                <div style="display: flex; align-items: center; min-width: 0;">
+                    <button class="menu-toggle" id="menuToggle" aria-label="菜单">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <h2>🔍 链接对比器</h2>
+                </div>
+                <div class="topbar-actions">
+                    <div class="user-info">
+                        <div class="user-avatar" sec:authentication="name">A</div>
+                        <span class="user-name" sec:authentication="name">admin</span>
+                    </div>
+                    <a href="/logout" class="logout-btn">退出登录</a>
+                </div>
+            </div>
+            <div class="container">
+                <div class="card">
+                    <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 1rem; margin-bottom: 1.5rem; border-radius: 4px;">
+                        <strong style="color: #1565c0;">💡 使用说明：</strong>
+                        <div style="color: #1976d2; margin-top: 0.5rem; line-height: 1.8;">
+                            左边放原始数据，右边放正确链接。<br>
+                            原始数据中.m3u8链接会被右边对应集号的正确链接替换，非.m3u8链接（如.png等特殊资源）保持不变。<br>
+                            集名统一为"第XX集"格式。
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 1.5rem;">
+                        <div style="flex: 1; min-width: 300px;">
+                            <label style="font-size: 14px; font-weight: 500; margin-bottom: 0.5rem; display: block;">
+                                原始播放数据 
+                                <small style="font-weight: normal; color: #999;">（每行一条：集名$链接）</small>
+                            </label>
+                            <textarea id="original_data" rows="15" 
+                                      style="width: 100%; padding: 1rem; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; font-family: 'Consolas', monospace;"
+                                      placeholder="第01集$https://xxx/01.m3u8&#10;第02集$https://xxx/02.m3u8&#10;..."></textarea>
+                        </div>
+
+                        <div style="flex: 1; min-width: 300px;">
+                            <label style="font-size: 14px; font-weight: 500; margin-bottom: 0.5rem; display: block;">
+                                正确链接 
+                                <small style="font-weight: normal; color: #999;">（每行一条：集号$链接）</small>
+                            </label>
+                            <textarea id="correct_data" rows="15"
+                                      style="width: 100%; padding: 1rem; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; font-family: 'Consolas', monospace;"
+                                      placeholder="01$https://correct-url/01.m3u8&#10;02$https://correct-url/02.m3u8&#10;..."></textarea>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                        <button type="button" class="btn" style="background: #667eea; color: white;" onclick="fillLinks()">🔄 填充替换</button>
+                        <button type="button" class="btn" style="background: #28a745; color: white;" onclick="copyOutput()">📋 复制结果</button>
+                        <button type="button" class="btn" style="background: #6c757d; color: white;" onclick="clearAll()">清空</button>
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <label style="font-size: 14px; font-weight: 500; display: block; margin-bottom: 0.5rem;">
+                            填充结果 
+                            <span id="result_info" style="color: #888; font-size: 13px;"></span>
+                        </label>
+                        <textarea id="output_data" rows="15" readonly
+                                  style="width: 100%; padding: 1rem; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; font-family: 'Consolas', monospace; background: #f8f9fa;"
+                                  placeholder="填充后的结果..."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="footer"><p>次元方舟视频管理系统 v1.0.0 &copy; 2024 | Java Spring Boot 强力驱动</p></div>
+        </main>
+    </div>
+    <script>
+        function splitEpisodeLines(text) {
+            text = text.trim();
+            if (text.indexOf('\n') !== -1) {
+                return text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l; });
+            }
+            var lines = [];
+            var regex = /((?:第)?[0-9]+(?:集)?\$)/g;
+            var matches = [];
+            var match;
+            while ((match = regex.exec(text)) !== null) {
+                matches.push({ index: match.index, prefix: match[1] });
+            }
+            for (var i = 0; i < matches.length; i++) {
+                var start = matches[i].index;
+                var end = (i + 1 < matches.length) ? matches[i + 1].index : text.length;
+                lines.push(text.substring(start, end));
+            }
+            return lines;
+        }
+
+        function fillLinks() {
+            var originalText = document.getElementById('original_data').value.trim();
+            var correctText = document.getElementById('correct_data').value.trim();
+
+            if (!originalText) { alert('请填写原始播放数据'); return; }
+            if (!correctText) { alert('请填写正确链接'); return; }
+
+            var correctMap = {};
+            var correctLines = splitEpisodeLines(correctText);
+            for (var i = 0; i < correctLines.length; i++) {
+                var line = correctLines[i];
+                var idx = line.indexOf('$');
+                if (idx === -1) continue;
+                var epPart = line.substring(0, idx);
+                var numStr = epPart.replace(/[^0-9]/g, '');
+                var num = parseInt(numStr);
+                if (isNaN(num)) continue;
+                var url = line.substring(idx + 1);
+                correctMap[num] = url;
+            }
+
+            var originalLines = splitEpisodeLines(originalText);
+            var result = [];
+            var replacedCount = 0;
+
+            for (var i = 0; i < originalLines.length; i++) {
+                var line = originalLines[i];
+                var idx = line.indexOf('$');
+                if (idx === -1) {
+                    result.push(line);
+                    continue;
+                }
+                var epPart = line.substring(0, idx);
+                var numStr = epPart.replace(/[^0-9]/g, '');
+                var num = parseInt(numStr);
+
+                if (!isNaN(num) && correctMap[num] !== undefined) {
+                    var currentUrl = line.substring(idx + 1);
+                    var epLabel = '第' + (num < 10 ? '0' + num : String(num)) + '集';
+                    if (currentUrl.toLowerCase().indexOf('.m3u8') !== -1) {
+                        result.push(epLabel + '$' + correctMap[num]);
+                        replacedCount++;
+                    } else {
+                        result.push(epLabel + '$' + currentUrl);
+                    }
+                } else {
+                    result.push(line);
+                }
+            }
+
+            document.getElementById('output_data').value = result.join('\n');
+            document.getElementById('result_info').textContent = '（共 ' + result.length + ' 条，替换了 ' + replacedCount + ' 条）';
+        }
+
+        function copyOutput() {
+            var el = document.getElementById('output_data');
+            if (!el.value) { alert('没有可复制的内容'); return; }
+            el.select();
+            document.execCommand('copy');
+            alert('已复制到剪贴板');
+        }
+
+        function clearAll() {
+            document.getElementById('original_data').value = '';
+            document.getElementById('correct_data').value = '';
+            document.getElementById('output_data').value = '';
+            document.getElementById('result_info').textContent = '';
+        }
+
+        (function() {
+            var menuToggle = document.getElementById('menuToggle');
+            var sidebar = document.getElementById('sidebar');
+            if (menuToggle && sidebar) {
+                menuToggle.addEventListener('click', function() { sidebar.classList.toggle('mobile-open'); });
+                var navLinks = sidebar.querySelectorAll('.nav-item');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() { if (window.innerWidth <= 768) { sidebar.classList.remove('mobile-open'); } });
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

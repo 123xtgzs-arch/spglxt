@@ -1,0 +1,17 @@
+{
+  "resources": {
+    "includes": [
+      {"pattern": "application\\.yml"},
+      {"pattern": "application-.*\\.yml"},
+      {"pattern": "static/.*"},
+      {"pattern": "templates/.*"},
+      {"pattern": "css/.*"},
+      {"pattern": "META-INF/.*"},
+      {"pattern": "config/.*"},
+      {"pattern": ".*\\.html"},
+      {"pattern": ".*\\.css"},
+      {"pattern": ".*\\.json"},
+      {"pattern": ".*\\.properties"}
+    ]
+  }
+}

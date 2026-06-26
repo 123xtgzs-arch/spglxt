@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/sidebar.css">
+    <title th:text="${video != null ? '编辑视频' : '添加视频'} + ' - 次元方舟视频管理系统'">编辑视频</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f7fa; color: #333; }
+        .layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 250px; background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); color: white; position: fixed; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 2px 0 8px rgba(0,0,0,0.1); z-index: 101; }
+        .sidebar-header { padding: 2rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .sidebar-header .version { font-size: 0.75rem; opacity: 0.8; }
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: 1rem 0; }
+        .nav-section { margin-bottom: 1.5rem; }
+        .nav-section-title { padding: 0.5rem 1.5rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; font-weight: 600; }
+        .nav-item { display: flex; align-items: center; padding: 0.75rem 1.5rem; color: rgba(255,255,255,0.9); text-decoration: none; transition: all 0.3s; border-left: 3px solid transparent; }
+        .nav-item:hover { background: rgba(255,255,255,0.1); color: white; }
+        .nav-item.active { background: rgba(255,255,255,0.15); border-left-color: white; color: white; font-weight: 500; }
+        .nav-item .icon { margin-right: 0.75rem; font-size: 1.125rem; }
+        .main-content { flex: 1; margin-left: 250px; display: flex; flex-direction: column; }
+        .topbar { background: white; padding: 1rem 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; align-items: center; position: relative; }
+        .topbar h2 { font-size: 1.5rem; color: #333; }
+        .menu-toggle { display: none; background: none; border: none; cursor: pointer; padding: 0.5rem; margin-right: 1rem; color: #667eea; }
+        .menu-toggle svg { display: block; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 99; }
+        .overlay.active { display: block; }
+        .container { flex: 1; padding: 2rem; max-width: 1000px; width: 100%; }
+        .card { background: white; border-radius: 8px; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 2rem; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; }
+        .form-group small { display: block; margin-top: 0.5rem; color: #888; font-size: 0.875rem; }
+        .btn { display: inline-block; padding: 0.5rem 1.25rem; background: #667eea; color: white; text-decoration: none; border-radius: 6px; border: none; cursor: pointer; transition: all 0.3s; font-size: 0.875rem; font-weight: 500; }
+        .btn:hover { background: #5568d3; }
+        .btn-success { background: #52c41a; } .btn-success:hover { background: #45a617; }
+        .btn-secondary { background: #6c757d; } .btn-secondary:hover { background: #5a6268; }
+        .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+        .play-group { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; }
+        .play-group-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+        .play-group-header .group-label { font-weight: 600; font-size: 14px; color: #667eea; }
+        .play-group-header input { padding: 0.5rem; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; flex: 1; min-width: 150px; }
+        .play-group-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 10px; }
+        .play-group-actions button { padding: 0.4rem 0.8rem; font-size: 12px; border: 1px solid #d9d9d9; background: #fff; border-radius: 3px; cursor: pointer; color: #555; }
+        .play-group-actions button:hover { border-color: #667eea; color: #667eea; }
+        .play-group-actions .btn-danger:hover { border-color: #ff4d4f; color: #ff4d4f; }
+        .play-episodes-area { width: 100%; min-height: 120px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 0.5rem; font-size: 13px; font-family: 'Consolas', monospace; line-height: 1.6; resize: vertical; }
+        .footer { text-align: center; padding: 1.5rem; color: #999; font-size: 0.75rem; background: white; border-top: 1px solid #e8eaed; }
+        @media (max-width: 768px) {
+            .menu-toggle { display: flex; }
+            .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+            .sidebar.mobile-open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay" id="overlay"></div>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header"><h1>🎬 次元方舟</h1><div class="version">Java v1.0.0</div></div>
+            <nav class="sidebar-nav">
+                <div class="nav-section"><div class="nav-section-title">主菜单</div>
+                    <a href="/dashboard" class="nav-item"><span class="icon">📊</span><span>仪表盘</span></a>
+                    <a href="/video/list" class="nav-item active"><span class="icon">🎬</span><span>视频管理</span></a>
+                    <a href="#" class="nav-item"><span class="icon">📂</span><span>分类管理</span></a>
+                </div>
+                <div class="nav-section"><div class="nav-section-title">采集与工具</div>
+                    <a href="/collect/list" class="nav-item"><span class="icon">🔄</span><span>采集站点</span></a>
+                    <a href="/collect/namewords" class="nav-item"><span class="icon">📖</span><span>名称同义库</span></a>
+                    <a href="/collect/tasks" class="nav-item"><span class="icon">📋</span><span>采集任务</span></a>
+                </div>
+                <div class="nav-section"><div class="nav-section-title">工具箱</div>
+                    <a href="/tool/link_gen" class="nav-item"><span class="icon">🔗</span><span>链接生成器</span></a>
+                    <a href="/tool/link_compare" class="nav-item"><span class="icon">🔍</span><span>链接对比器</span></a>
+                    <a href="/tool/merge" class="nav-item"><span class="icon">🔀</span><span>视频合并</span></a>
+                </div>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="topbar">
+                <div style="display: flex; align-items: center; min-width: 0;">
+                    <button class="menu-toggle" id="menuToggle"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
+                    <h2 th:text="${video != null ? '✏️ 编辑视频' : '➕ 添加视频'}">编辑视频</h2>
+                </div>
+                <div class="topbar-actions">
+                    <div class="user-info">
+                        <div class="user-avatar" sec:authentication="name">A</div>
+                        <span class="user-name" sec:authentication="name">admin</span>
+                    </div>
+                    <a href="/logout" class="logout-btn">退出登录</a>
+                </div>
+            </div>
+            <div class="container">
+                <div class="card">
+                    <form id="videoForm">
+                        <input type="hidden" name="vodId" th:value="${video != null ? video.vodId : ''}">
+                        <div class="form-group"><label>视频名称 *</label><input type="text" name="vodName" th:value="${video != null ? video.vodName : ''}" required></div>
+                        <div class="form-group"><label>分类 *</label><select name="typeId" required><option value="">请选择</option><option th:each="type : ${types}" th:value="${type.typeId}" th:selected="${video != null and video.typeId == type.typeId}" th:text="${type.typeName}"></option></select></div>
+                        <div class="form-group"><label>状态</label><select name="vodStatus"><option value="0" th:selected="${video == null or video.vodStatus == 0}">待审核</option><option value="1" th:selected="${video != null and video.vodStatus == 1}">已审核</option></select></div>
+                        <div class="form-group"><label>封面图片</label><input type="text" name="vodPic" th:value="${video != null ? video.vodPic : ''}" placeholder="图片URL"></div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group"><label>演员</label><input type="text" name="vodActor" th:value="${video != null ? video.vodActor : ''}"></div>
+                            <div class="form-group"><label>导演</label><input type="text" name="vodDirector" th:value="${video != null ? video.vodDirector : ''}"></div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                            <div class="form-group"><label>年份</label><input type="text" name="vodYear" th:value="${video != null ? video.vodYear : ''}"></div>
+                            <div class="form-group"><label>地区</label><input type="text" name="vodArea" th:value="${video != null ? video.vodArea : ''}"></div>
+                            <div class="form-group"><label>语言</label><input type="text" name="vodLang" th:value="${video != null ? video.vodLang : ''}"></div>
+                        </div>
+                        <div class="form-group"><label>备注</label><input type="text" name="vodRemarks" th:value="${video != null ? video.vodRemarks : ''}" placeholder="如：更新至第10集"></div>
+                        <input type="hidden" name="vodPlayFrom" id="hiddenPlayFrom" th:value="${video != null ? video.vodPlayFrom : ''}">
+                        <input type="hidden" name="vodPlayUrl" id="hiddenPlayUrl" th:value="${video != null ? video.vodPlayUrl : ''}">
+                        <div id="playGroupsContainer"></div>
+                        <div style="margin: 10px 0 1.5rem;"><button type="button" class="btn btn-success btn-sm" onclick="addPlayGroup()">＋ 添加播放组</button></div>
+                        <div class="form-group"><label>简介</label><textarea name="vodContent" rows="5" th:text="${video != null ? video.vodContent : ''}"></textarea></div>
+                        <div style="margin-top: 2rem;">
+                            <button type="submit" class="btn">💾 保存</button>
+                            <a href="/video/list" class="btn btn-secondary" style="margin-left: 0.5rem;">返回</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="footer"><p>次元方舟视频管理系统 v1.0.0 &copy; 2024</p></div>
+        </main>
+    </div>
+    <script>
+        var menuToggle=document.getElementById('menuToggle'),sidebar=document.getElementById('sidebar'),overlay=document.getElementById('overlay');
+        if(menuToggle&&sidebar&&overlay){menuToggle.addEventListener('click',function(){sidebar.classList.toggle('mobile-open');overlay.classList.toggle('active')});overlay.addEventListener('click',function(){sidebar.classList.remove('mobile-open');overlay.classList.remove('active')});sidebar.querySelectorAll('.nav-item').forEach(function(link){link.addEventListener('click',function(){if(window.innerWidth<=768){sidebar.classList.remove('mobile-open');overlay.classList.remove('active')}})})}
+        
+        var groupCount=0;
+        var SYSTEM_PLAYERS=['cyfunA','cyfunB','bilibili','cyfunC','cyfunW','qiyi','qq','youku','YYNB','1080zyk','cyfun4K','jsm3u8','tym3u8','lzm3u8','modum3u8'];
+        (function(){
+            var playFrom=document.getElementById('hiddenPlayFrom').value||'',playUrl=document.getElementById('hiddenPlayUrl').value||'';
+            var sourceNames=playFrom?playFrom.split('$$$'):[],sources=playUrl?playUrl.split('$$$'):[];
+            if(sources.length===0||(sources.length===1&&sources[0]==='')){sourceNames=[''];sources=['']}
+            var container=document.getElementById('playGroupsContainer');
+            for(var i=0;i<sources.length;i++){
+                var name=sourceNames[i]||'',content=sources[i]||'',formatted=content.replace(/#/g,'\n');
+                renderPlayGroup(container,name,formatted,i+1);
+            }
+        })();
+        
+        function renderPlayGroup(container,playerName,content,index){
+            groupCount++;
+            var gid='play-group-'+groupCount;
+            var div=document.createElement('div');
+            div.className='play-group';
+            div.id=gid;
+            
+            playerName=playerName||'';
+            content=content||'';
+            
+            var selectOptions='<option value="">手动输入</option>';
+            for(var i=0;i<SYSTEM_PLAYERS.length;i++){
+                var p=SYSTEM_PLAYERS[i];
+                var selected=playerName===p?' selected':'';
+                selectOptions+='<option value="'+p+'"'+selected+'>'+p+'</option>';
+            }
+            
+            var isSystemPlayer=SYSTEM_PLAYERS.indexOf(playerName)!==-1;
+            var customValue=isSystemPlayer?'':escapeHtml(playerName);
+            var customDisplay=isSystemPlayer?'display:none;':'';
+            
+            div.innerHTML='<div class="play-group-header">'+
+                '<span class="group-label">播放'+index+'：</span>'+
+                '<select class="player-name" style="padding:0.5rem;border:1px solid #d9d9d9;border-radius:4px;font-size:13px;flex:1;min-width:150px;" onchange="handlePlayerSelect(this,\''+gid+'\')">'+selectOptions+'</select>'+
+                '<input type="text" class="player-name-custom" placeholder="或输入自定义名称" value="'+customValue+'" style="padding:0.5rem;border:1px solid #d9d9d9;border-radius:4px;font-size:13px;flex:1;min-width:150px;'+customDisplay+'">'+
+                '</div>'+
+                '<div class="play-group-actions">'+
+                '<button type="button" onclick="clearGroup(\''+gid+'\')">清空</button>'+
+                '<button type="button" class="btn-danger" onclick="deleteGroup(\''+gid+'\')">删除</button>'+
+                '<button type="button" onclick="moveGroup(\''+gid+'\',-1)">上移</button>'+
+                '<button type="button" onclick="moveGroup(\''+gid+'\',1)">下移</button>'+
+                '<button type="button" onclick="reverseGroup(\''+gid+'\')">倒序</button>'+
+                '<button type="button" onclick="removePrefixGroup(\''+gid+'\')">去前缀</button>'+
+                '</div>'+
+                '<textarea class="play-episodes-area" placeholder="每行一条，格式：集名$播放地址&#10;例如：第01集$https://xxx.m3u8">'+escapeHtml(content)+'</textarea>';
+            
+            container.appendChild(div);
+        }
+        
+        function handlePlayerSelect(select,gid){
+            var group=document.getElementById(gid);
+            var customInput=group.querySelector('.player-name-custom');
+            if(select.value===''){
+                customInput.style.display='inline';
+                customInput.focus();
+            }else{
+                customInput.style.display='none';
+                customInput.value='';
+            }
+        }
+        
+        function addPlayGroup(){var container=document.getElementById('playGroupsContainer');renderPlayGroup(container,'','',container.children.length+1)}
+        function clearGroup(gid){var group=document.getElementById(gid);if(group)group.querySelector('.play-episodes-area').value=''}
+        function deleteGroup(gid){if(!confirm('确定删除？'))return;var group=document.getElementById(gid);if(group){group.parentNode.removeChild(group);reindexGroups()}}
+        function moveGroup(gid,direction){var group=document.getElementById(gid),container=group.parentNode;if(direction===-1&&group.previousElementSibling){container.insertBefore(group,group.previousElementSibling)}else if(direction===1&&group.nextElementSibling){container.insertBefore(group.nextElementSibling,group)}reindexGroups()}
+        function reverseGroup(gid){var group=document.getElementById(gid),textarea=group.querySelector('.play-episodes-area'),lines=textarea.value.split('\n').filter(function(l){return l.trim()!==''});lines.reverse();textarea.value=lines.join('\n')}
+        function removePrefixGroup(gid){var group=document.getElementById(gid),textarea=group.querySelector('.play-episodes-area'),lines=textarea.value.split('\n'),result=[];for(var i=0;i<lines.length;i++){var line=lines[i].trim();if(!line)continue;var idx=line.indexOf('$');if(idx!==-1){var url=line.substring(idx+1),num=String(i+1);if(num.length<2)num='0'+num;result.push('第'+num+'集$'+url)}else{result.push(line)}}textarea.value=result.join('\n')}
+        function reindexGroups(){var container=document.getElementById('playGroupsContainer'),groups=container.querySelectorAll('.play-group');for(var i=0;i<groups.length;i++){var label=groups[i].querySelector('.group-label');if(label)label.textContent='播放'+(i+1)+'：'}}
+        function syncPlayData(){
+            var container=document.getElementById('playGroupsContainer'),groups=container.querySelectorAll('.play-group'),playFromArr=[],playUrlArr=[];
+            for(var i=0;i<groups.length;i++){
+                var select=groups[i].querySelector('.player-name');
+                var customInput=groups[i].querySelector('.player-name-custom');
+                var textarea=groups[i].querySelector('.play-episodes-area');
+                var playerName='';
+                if(select.value){playerName=select.value}else{playerName=customInput.value.trim()||''}
+                var lines=textarea.value.split('\n').filter(function(l){return l.trim()!==''});
+                var urlStr=lines.join('#');
+                playFromArr.push(playerName);
+                playUrlArr.push(urlStr);
+            }
+            document.getElementById('hiddenPlayFrom').value=playFromArr.join('$$$');
+            document.getElementById('hiddenPlayUrl').value=playUrlArr.join('$$$');
+        }
+        function escapeHtml(str){if(!str)return'';var div=document.createElement('div');div.appendChild(document.createTextNode(str));return div.innerHTML}
+        
+        document.getElementById('videoForm').addEventListener('submit',function(e){
+            e.preventDefault();
+            
+            // 防止重复提交
+            var btn=this.querySelector('button[type="submit"]');
+            if(btn.disabled)return;
+            btn.disabled=true;
+            var originalText=btn.textContent;
+            btn.textContent='💾 保存中...';
+            
+            syncPlayData();
+            var formData=new FormData(this),data={};
+            formData.forEach(function(value,key){if(value)data[key]=value});
+            
+            fetch('/video/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+            .then(function(r){
+                if(!r.ok){
+                    throw new Error('服务器响应错误: '+r.status);
+                }
+                return r.json();
+            })
+            .then(function(res){
+                btn.disabled=false;
+                btn.textContent=originalText;
+                if(res.code===200||res.code===0){
+                    // 保存成功,不显示提示,直接跳转
+                    window.location.href='/video/list';
+                }else{
+                    alert('保存失败: '+(res.message||res.msg||'未知错误'));
+                }
+            })
+            .catch(function(e){
+                btn.disabled=false;
+                btn.textContent=originalText;
+                console.error('保存失败:',e);
+                alert('请求失败: '+e.message);
+            });
+        });
+    </script>
+</body>
+</html>

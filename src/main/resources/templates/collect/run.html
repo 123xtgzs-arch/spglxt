@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/sidebar.css">
+    <title th:text="'采集执行 - ' + (${site != null ? site.name : ''}) + ' - 次元方舟视频管理系统'">采集执行</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f5f7fa; color: #333; }
+        .layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 250px; background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); color: white; position: fixed; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 2px 0 8px rgba(0,0,0,0.1); z-index: 100; }
+        .sidebar-header { padding: 2rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .sidebar-header .version { font-size: 0.75rem; opacity: 0.8; }
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: 1rem 0; }
+        .nav-section { margin-bottom: 1.5rem; }
+        .nav-section-title { padding: 0.5rem 1.5rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; font-weight: 600; }
+        .nav-item { display: flex; align-items: center; padding: 0.75rem 1.5rem; color: rgba(255,255,255,0.9); text-decoration: none; transition: all 0.3s; border-left: 3px solid transparent; }
+        .nav-item:hover { background: rgba(255,255,255,0.1); color: white; }
+        .nav-item.active { background: rgba(255,255,255,0.15); border-left-color: white; color: white; font-weight: 500; }
+        .nav-item .icon { margin-right: 0.75rem; font-size: 1.125rem; }
+        .main-content { flex: 1; margin-left: 250px; display: flex; flex-direction: column; }
+        .topbar { background: white; padding: 1rem 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .topbar h2 { font-size: 1.5rem; color: #333; }
+        .container { flex: 1; padding: 2rem; max-width: 1400px; width: 100%; }
+        .card { background: white; border-radius: 8px; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 2rem; }
+        .btn { display: inline-block; padding: 0.5rem 1.25rem; background: #667eea; color: white; text-decoration: none; border-radius: 6px; border: none; cursor: pointer; transition: all 0.3s; font-size: 0.875rem; font-weight: 500; }
+        .btn:hover { background: #5568d3; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(102,126,234,0.3); }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-weight: 600; color: #555; }
+        .footer { text-align: center; padding: 1.5rem; color: #999; font-size: 0.75rem; background: white; border-top: 1px solid #e8eaed; }
+        .pagination-btn { padding: 6px 12px; border: 1px solid #ddd; background: white; color: #333; text-decoration: none; border-radius: 4px; font-size: 13px; cursor: pointer; }
+        .pagination-btn:hover { background: #f0f2ff; border-color: #667eea; }
+        .pagination-btn.active { background: #667eea; color: white; border-color: #667eea; }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header"><h1>🎬 次元方舟</h1><div class="version">Java v1.0.0</div></div>
+            <nav class="sidebar-nav">
+                <div class="nav-section"><div class="nav-section-title">主菜单</div>
+                    <a href="/dashboard" class="nav-item"><span class="icon">📊</span><span>仪表盘</span></a>
+                    <a href="/video/list" class="nav-item"><span class="icon">🎬</span><span>视频管理</span></a>
+                    <a href="#" class="nav-item"><span class="icon">📂</span><span>分类管理</span></a>
+                </div>
+                <div class="nav-section"><div class="nav-section-title">采集与工具</div>
+                    <a href="/collect/list" class="nav-item active"><span class="icon">🔄</span><span>采集站点</span></a>
+                    <a href="/collect/namewords" class="nav-item"><span class="icon">📖</span><span>名称同义库</span></a>
+                    <a href="/collect/tasks" class="nav-item"><span class="icon">📋</span><span>采集任务</span></a>
+                </div>
+                <div class="nav-section"><div class="nav-section-title">工具箱</div>
+                    <a href="/tool/link_gen" class="nav-item"><span class="icon">🔗</span><span>链接生成器</span></a>
+                    <a href="/tool/link_compare" class="nav-item"><span class="icon">🔍</span><span>链接对比器</span></a>
+                    <a href="/tool/merge" class="nav-item"><span class="icon">🔀</span><span>视频合并</span></a>
+                </div>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="topbar"><h2 th:text="'📡 采集 - ' + (${site != null ? site.name : ''})">采集执行</h2>
+                <div class="topbar-actions">
+                    <div class="user-info">
+                        <div class="user-avatar" sec:authentication="name">A</div>
+                        <span class="user-name" sec:authentication="name">admin</span>
+                    </div>
+                    <a href="/logout" class="logout-btn">退出登录</a>
+                </div></div>
+            <div class="container">
+                <div class="card">
+                    <!-- 分类列表 -->
+                    <div id="type_area" style="margin-bottom: 16px;">
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;" id="type_list">
+                            <a href="javascript:;" class="btn" style="background: #667eea; padding: 6px 12px; font-size: 12px;" onclick="selectType('')">查看全部资源</a>
+                            <span style="color: #999; font-size: 13px;">正在加载分类...</span>
+                        </div>
+                    </div>
+
+                    <!-- 搜索 + 操作按钮 -->
+                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap;">
+                        <input type="text" id="search_wd" placeholder="搜索关键字" style="width: 200px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                        <button type="button" class="btn" style="padding: 8px 16px; font-size: 14px;" onclick="searchByWd()">🔍 查询</button>
+                        <a th:href="@{'/collect/bind/' + ${site != null ? site.id : 0}}" class="btn" style="background: #ffc107; padding: 8px 16px; font-size: 14px;">🔗 分类绑定</a>
+                    </div>
+
+                    <!-- 资源列表 -->
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th width="25"><input type="checkbox" id="check_all" onclick="toggleCheckAll()"></th>
+                                    <th>名称</th>
+                                    <th width="80">分类</th>
+                                    <th width="120">来源</th>
+                                    <th width="150">时间</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resource_list">
+                                <tr><td colspan="5" style="text-align: center; color: #999; padding: 30px;">点击上方分类或"查看全部资源"加载数据</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div style="display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; align-items: center;">
+                        <button type="button" class="btn" onclick="collectSelected()">📥 采集选中</button>
+                        <button type="button" class="btn" style="background: #28a745;" onclick="collectByHours(24)">📥 采集当天</button>
+                        <button type="button" class="btn" style="background: #dc3545;" onclick="collectAll()">📥 采集全部</button>
+                        <button type="button" class="btn" style="background: #6c757d;" onclick="stopCollect()">⏹ 停止</button>
+                        <span id="collect_status" style="font-size: 13px; color: #888; margin-left: 12px;"></span>
+                    </div>
+
+                    <!-- 分页 -->
+                    <div id="pagination_area" style="margin-top: 16px; display: flex; gap: 4px; flex-wrap: wrap;"></div>
+
+                    <!-- 采集日志 -->
+                    <div style="margin-top: 16px;">
+                        <textarea id="collect_log" rows="10" readonly 
+                                  style="width: 100%; padding: 12px; font-size: 12px; font-family: 'Consolas', monospace; background: #1e1e1e; color: #d4d4d4; border: none; border-radius: 4px; display: none;"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="footer"><p>次元方舟视频管理系统 v1.0.0 &copy; 2024 | Java Spring Boot 强力驱动</p></div>
+        </main>
+    </div>
+
+    <script th:inline="javascript">
+    var siteId = /*[[${site != null ? site.id : 0}]]*/ 0;
+    var localTypes = /*[[${types}]]*/ [];
+    var bindConfig = /*[[${bindConfig}]]*/ {};
+    var currentPage = 1;
+    var currentType = '';
+    var currentWd = '';
+    var totalPages = 1;
+    var sourceTypes = [];
+    var resourceList = [];
+    var shouldStop = false;
+
+    // 调试输出
+    console.log('站点ID:', siteId);
+    console.log('本地分类:', localTypes);
+    console.log('绑定配置:', bindConfig);
+
+    // 页面加载时获取分类
+    fetchTypes();
+
+    function fetchTypes() {
+        fetch('/collect/api?act=fetch_list&siteId=' + siteId + '&pg=1')
+            .then(r => r.json())
+            .then(res => {
+                console.log('fetchTypes响应:', res);
+                if (res.code !== 200) {
+                    console.error('获取分类失败:', res.message);
+                    return;
+                }
+                sourceTypes = res.data.class || [];
+                console.log('分类列表:', sourceTypes);
+                renderTypes();
+                renderResourceList(res.data);
+            })
+            .catch(err => {
+                console.error('fetchTypes请求失败:', err);
+            });
+    }
+
+    function renderTypes() {
+        var html = '<a href="javascript:;" class="btn" style="background: #667eea; padding: 6px 12px; font-size: 12px;" onclick="selectType(\'\')">全部</a>';
+        sourceTypes.forEach(st => {
+            var bindLabel = '';
+            var localId = bindConfig[String(st.type_id)] || '0';
+            
+            if (localId != '0') {
+                var localName = '';
+                localTypes.forEach(lt => {
+                    // 兼容驼峰和下划线两种命名
+                    var ltTypeId = lt.typeId || lt.type_id;
+                    var ltTypeName = lt.typeName || lt.type_name;
+                    if (String(ltTypeId) === String(localId)) {
+                        localName = ltTypeName;
+                    }
+                });
+                bindLabel = '<a href="javascript:;" onclick="showBindSelect(' + st.type_id + ', this)" style="color: #52c41a; font-size: 11px; text-decoration: none; margin-left: 4px;">[' + (localName || '已绑定') + ']</a>';
+            } else {
+                bindLabel = '<a href="javascript:;" onclick="showBindSelect(' + st.type_id + ', this)" style="color: #ff4d4f; font-size: 11px; text-decoration: none; margin-left: 4px;">[未绑定]</a>';
+            }
+            
+            html += '<span style="display: inline-flex; align-items: center; gap: 2px; margin: 2px 0;">' +
+                '<a href="javascript:;" class="btn" style="background: #f0f0f0; color: #333; font-size: 12px; padding: 6px 12px;" onclick="selectType(\'' + st.type_id + '\')">' + st.type_name + '</a>' +
+                bindLabel + '</span>';
+        });
+        document.getElementById('type_list').innerHTML = html;
+    }
+
+    // 显示绑定选择弹窗
+    function showBindSelect(sourceTypeId, el) {
+        // 如果已经有下拉框就关闭
+        var existing = document.getElementById('bind_select_popup');
+        if (existing) existing.remove();
+
+        var popup = document.createElement('div');
+        popup.id = 'bind_select_popup';
+        popup.style.cssText = 'position: absolute; z-index: 9999; background: #fff; border: 1px solid #d9d9d9; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 8px; max-height: 300px; overflow-y: auto; min-width: 150px;';
+
+        var optHtml = '<div style="padding: 4px 8px; cursor: pointer; font-size: 13px; border-radius: 3px;" onmouseover="this.style.background=\'#f0f2ff\'" onmouseout="this.style.background=\'\'" onclick="doBind(' + sourceTypeId + ', 0, \'不绑定\')">不绑定（跳过）</div>';
+        
+        if (localTypes && localTypes.length > 0) {
+            localTypes.forEach(lt => {
+                // 兼容驼峰和下划线两种命名
+                var ltTypeId = lt.typeId || lt.type_id;
+                var ltTypeName = lt.typeName || lt.type_name;
+                
+                if (ltTypeId && ltTypeName) {
+                    var typeName = String(ltTypeName).replace(/'/g, "\\'");
+                    optHtml += '<div style="padding: 4px 8px; cursor: pointer; font-size: 13px; border-radius: 3px;" onmouseover="this.style.background=\'#f0f2ff\'" onmouseout="this.style.background=\'\'" onclick="doBind(' + sourceTypeId + ', ' + ltTypeId + ', \'' + typeName + '\')">' + ltTypeName + '</div>';
+                }
+            });
+        } else {
+            optHtml += '<div style="padding: 4px 8px; font-size: 13px; color: #999;">暂无本地分类</div>';
+        }
+        
+        popup.innerHTML = optHtml;
+
+        // 定位到点击元素旁边
+        var rect = el.getBoundingClientRect();
+        popup.style.left = (rect.left + window.scrollX) + 'px';
+        popup.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+        document.body.appendChild(popup);
+
+        // 点击其他地方关闭
+        setTimeout(() => {
+            document.addEventListener('click', closeBindPopup);
+        }, 10);
+    }
+
+    function closeBindPopup(e) {
+        var popup = document.getElementById('bind_select_popup');
+        if (popup && !popup.contains(e.target)) {
+            popup.remove();
+            document.removeEventListener('click', closeBindPopup);
+        }
+    }
+
+    function doBind(sourceTypeId, localTypeId, localTypeName) {
+        // 关闭弹窗
+        var popup = document.getElementById('bind_select_popup');
+        if (popup) popup.remove();
+        document.removeEventListener('click', closeBindPopup);
+
+        // 更新本地配置
+        bindConfig[String(sourceTypeId)] = String(localTypeId);
+
+        // 保存到服务端
+        var postData = {};
+        for (var key in bindConfig) {
+            postData[key] = bindConfig[key];
+        }
+
+        fetch('/collect/bind/' + siteId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(postData)
+        }).then(r => r.json()).then(res => {
+            if (res.code === 200) {
+                console.log('绑定保存成功');
+                // 刷新分类显示
+                renderTypes();
+            } else {
+                alert('保存失败: ' + res.message);
+            }
+        }).catch(e => {
+            alert('保存失败: ' + e.message);
+        });
+    }
+
+    function selectType(typeId) {
+        currentType = typeId;
+        currentPage = 1;
+        currentWd = '';
+        document.getElementById('search_wd').value = '';
+        loadPage();
+    }
+
+    function searchByWd() {
+        currentWd = document.getElementById('search_wd').value.trim();
+        currentPage = 1;
+        currentType = '';
+        loadPage();
+    }
+
+    function loadPage() {
+        var url = '/collect/api?act=fetch_list&siteId=' + siteId + '&pg=' + currentPage;
+        if (currentType) url += '&t=' + currentType;
+        if (currentWd) url += '&wd=' + encodeURIComponent(currentWd);
+
+        console.log('loadPage请求URL:', url);
+        document.getElementById('resource_list').innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #999;">加载中...</td></tr>';
+
+        fetch(url)
+            .then(r => r.json())
+            .then(res => {
+                console.log('loadPage响应:', res);
+                if (res.code !== 200) {
+                    console.error('加载失败:', res.message);
+                    document.getElementById('resource_list').innerHTML = '<tr><td colspan="5" style="text-align: center; color: red;">加载失败：' + res.message + '</td></tr>';
+                    return;
+                }
+                renderResourceList(res.data);
+            })
+            .catch(e => {
+                console.error('loadPage请求失败:', e);
+                document.getElementById('resource_list').innerHTML = '<tr><td colspan="5" style="text-align: center; color: red;">请求失败: ' + e.message + '</td></tr>';
+            });
+    }
+
+    function renderResourceList(data) {
+        var list = data.list || [];
+        totalPages = data.pagecount || 1;
+        currentPage = data.page || 1;
+        resourceList = list;
+
+        var html = '';
+        if (list.length === 0) {
+            html = '<tr><td colspan="5" style="text-align: center; color: #999; padding: 30px;">暂无数据</td></tr>';
+        } else {
+            list.forEach(item => {
+                var typeName = item.type_name || findTypeName(item.type_id) || '-';
+                html += '<tr>' +
+                    '<td><input type="checkbox" class="res-check" value="' + item.vod_id + '"></td>' +
+                    '<td>' + escapeHtml(item.vod_name || '') + '</td>' +
+                    '<td>' + escapeHtml(typeName) + '</td>' +
+                    '<td style="font-size: 12px; color: #888;">' + escapeHtml(item.vod_play_from || '-') + '</td>' +
+                    '<td style="font-size: 12px;">' + escapeHtml(item.vod_time || '-') + '</td>' +
+                    '</tr>';
+            });
+        }
+        document.getElementById('resource_list').innerHTML = html;
+        renderPagination();
+        document.getElementById('collect_status').textContent = '共 ' + (data.total || 0) + ' 条，第 ' + currentPage + '/' + totalPages + ' 页';
+    }
+
+    function findTypeName(typeId) {
+        for (var i = 0; i < sourceTypes.length; i++) {
+            if (String(sourceTypes[i].type_id) === String(typeId)) return sourceTypes[i].type_name;
+        }
+        return '';
+    }
+
+    function renderPagination() {
+        var html = '';
+        if (totalPages <= 1) { 
+            document.getElementById('pagination_area').innerHTML = ''; 
+            return; 
+        }
+
+        if (currentPage > 1) {
+            html += '<a href="javascript:;" onclick="goPage(' + (currentPage - 1) + ')" class="pagination-btn">上一页</a>';
+        }
+
+        var start = Math.max(1, currentPage - 3);
+        var end = Math.min(totalPages, currentPage + 3);
+        for (var i = start; i <= end; i++) {
+            if (i === currentPage) {
+                html += '<span class="pagination-btn active">' + i + '</span>';
+            } else {
+                html += '<a href="javascript:;" onclick="goPage(' + i + ')" class="pagination-btn">' + i + '</a>';
+            }
+        }
+
+        if (currentPage < totalPages) {
+            html += '<a href="javascript:;" onclick="goPage(' + (currentPage + 1) + ')" class="pagination-btn">下一页</a>';
+        }
+
+        document.getElementById('pagination_area').innerHTML = html;
+    }
+
+    function goPage(page) {
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+        currentPage = page;
+        loadPage();
+    }
+
+    function toggleCheckAll() {
+        var checked = document.getElementById('check_all').checked;
+        document.querySelectorAll('.res-check').forEach(box => box.checked = checked);
+    }
+
+    function collectSelected() {
+        var checked = document.querySelectorAll('.res-check:checked');
+        if (checked.length === 0) { 
+            alert('请至少选择一项'); 
+            return; 
+        }
+        var ids = Array.from(checked).map(c => c.value).join(',');
+        showLog();
+        appendLog('开始采集选中的 ' + checked.length + ' 条...');
+        fetchAndImport(ids);
+    }
+
+    function collectByHours(h) {
+        shouldStop = false;
+        showLog();
+        appendLog('开始采集最近 ' + h + ' 小时更新的数据...');
+        collectPages(1, 99999, h);
+    }
+
+    function collectAll() {
+        if (!confirm('确定要采集全部数据吗？这可能需要较长时间。')) return;
+        shouldStop = false;
+        showLog();
+        appendLog('开始采集全部数据...');
+        collectPages(1, 99999, '');
+    }
+
+    function stopCollect() {
+        shouldStop = true;
+        appendLog('--- 用户停止采集 ---');
+    }
+
+    function collectPages(page, maxPage, hours) {
+        if (shouldStop) { 
+            appendLog('--- 已停止 ---'); 
+            return; 
+        }
+        
+        var url = '/collect/api?act=fetch_list&siteId=' + siteId + '&pg=' + page;
+        if (currentType) url += '&t=' + currentType;
+        if (hours) url += '&h=' + hours;
+
+        fetch(url)
+            .then(r => r.json())
+            .then(res => {
+                if (res.code !== 200) { 
+                    appendLog('获取列表失败：' + res.message); 
+                    return; 
+                }
+                var data = res.data;
+                var list = data.list || [];
+                var pagecount = data.pagecount || 1;
+
+                if (list.length === 0) { 
+                    appendLog('采集结束，无更多数据'); 
+                    return; 
+                }
+
+                appendLog('第 ' + page + '/' + Math.min(pagecount, maxPage) + ' 页，共 ' + list.length + ' 条');
+
+                var ids = list.map(item => item.vod_id).join(',');
+                fetchAndImport(ids, () => {
+                    if (page < pagecount && page < maxPage) {
+                        collectPages(page + 1, maxPage, hours);
+                    } else {
+                        appendLog('===== 全部采集完成 =====');
+                    }
+                });
+            })
+            .catch(e => { 
+                appendLog('请求失败：' + e.message); 
+            });
+    }
+
+    function fetchAndImport(ids, callback) {
+        var detailUrl = '/collect/api?act=fetch_detail&siteId=' + siteId + '&ids=' + ids;
+        console.log('获取详情URL:', detailUrl);
+        
+        fetch(detailUrl)
+            .then(r => r.json())
+            .then(res => {
+                console.log('详情响应:', res);
+                if (res.code !== 200) { 
+                    appendLog('❌ 获取详情失败：' + res.message); 
+                    if (callback) callback(); 
+                    return; 
+                }
+                var videos = res.data.list || [];
+                console.log('获取到视频详情:', videos.length, '条');
+                
+                if (videos.length === 0) { 
+                    appendLog('⚠️ 无详情数据（可能ID不存在或资源站返回空数据）'); 
+                    if (callback) callback(); 
+                    return; 
+                }
+
+                appendLog('📦 准备导入 ' + videos.length + ' 条视频...');
+                var postData = { 
+                    videos: videos, 
+                    siteId: siteId,
+                    mode: 'all'
+                };
+
+                fetch('/collect/api?act=import', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(postData)
+                })
+                .then(r => r.json())
+                .then(importRes => {
+                    console.log('导入响应:', importRes);
+                    if (importRes.code === 200) {
+                        appendLog('✅ ' + importRes.message);
+                        // 显示详细统计
+                        if (importRes.data) {
+                            appendLog('   统计: 新增=' + (importRes.data.add || 0) + ', 更新=' + (importRes.data.update || 0) + ', 跳过=' + (importRes.data.skip || 0));
+                            
+                            // 显示跳过原因
+                            if (importRes.data.skipReasons && importRes.data.skipReasons.length > 0) {
+                                appendLog('   跳过原因:');
+                                importRes.data.skipReasons.forEach(reason => {
+                                    appendLog('   - ' + reason);
+                                });
+                            }
+                        }
+                    } else {
+                        appendLog('❌ ' + importRes.message);
+                    }
+                    if (callback) callback();
+                })
+                .catch(e => { 
+                    appendLog('❌ 导入请求失败：' + e.message); 
+                    console.error('导入失败:', e);
+                    if (callback) callback(); 
+                });
+            })
+            .catch(e => { 
+                appendLog('❌ 获取详情请求失败：' + e.message); 
+                console.error('获取详情失败:', e);
+                if (callback) callback(); 
+            });
+    }
+
+    function showLog() {
+        document.getElementById('collect_log').style.display = 'block';
+    }
+
+    function appendLog(msg) {
+        var log = document.getElementById('collect_log');
+        var time = new Date().toLocaleTimeString();
+        log.value += '[' + time + '] ' + msg + '\n';
+        log.scrollTop = log.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    }
+    </script>
+</body>
+</html>

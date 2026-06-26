@@ -1,0 +1,24 @@
+# syntax=docker/dockerfile:1
+# Windows 上运行: build-native-docker.bat
+# 在 Linux 容器内 GraalVM 编译，产出 Linux 原生 spglxt（宝塔可直接用，无需 Java）
+
+FROM ghcr.io/graalvm/native-image-community:17-ol9 AS builder
+
+RUN microdnf install -y maven findutils tar gzip && microdnf clean all
+
+WORKDIR /project
+
+COPY pom.xml settings.xml ./
+COPY src ./src
+COPY config ./config
+
+ENV MAVEN_OPTS="-Xmx4g"
+ENV LANG=C.UTF-8
+
+RUN mvn -B package -Pnative -DskipTests -s settings.xml \
+    && test -f target/spglxt \
+    && chmod +x target/spglxt
+
+# 仅用于 docker cp 提取二进制，不单独运行此 stage
+FROM scratch AS export
+COPY --from=builder /project/target/spglxt /spglxt

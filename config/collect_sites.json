@@ -1,0 +1,27 @@
+[ {
+  "id" : 1,
+  "name" : "极速",
+  "url" : "https://jszyapi.com/api.php/provide/vod/at/json",
+  "type" : 1,
+  "param" : "",
+  "collectOpt" : "2",
+  "collectFilter" : "0",
+  "filterFrom" : "",
+  "skipSameTotal" : 1,
+  "uprule" : "a,d",
+  "status" : 1,
+  "bindConfig" : {
+    "24" : 21,
+    "25" : 24
+  },
+  "cronConfig" : {
+    "enabled" : 1,
+    "mode" : "cron",
+    "interval" : 6,
+    "cronHours" : "08:30,00:30",
+    "hours" : "24",
+    "typeId" : "",
+    "lastRun" : 1782491400
+  },
+  "updatedAt" : 1782491400
+} ]

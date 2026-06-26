@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/sidebar.css">
+    <title>定时采集 - 次元方舟视频管理系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f5f7fa; color: #333; overflow-x: hidden; }
+        .layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 250px; background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); color: white; position: fixed; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 2px 0 8px rgba(0,0,0,0.1); z-index: 100; }
+        .sidebar-header { padding: 2rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .sidebar-header .version { font-size: 0.75rem; opacity: 0.8; }
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: 1rem 0; }
+        .nav-section { margin-bottom: 1.5rem; }
+        .nav-section-title { padding: 0.5rem 1.5rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; font-weight: 600; }
+        .nav-item { display: flex; align-items: center; padding: 0.75rem 1.5rem; color: rgba(255,255,255,0.9); text-decoration: none; transition: all 0.3s; border-left: 3px solid transparent; }
+        .nav-item:hover { background: rgba(255,255,255,0.1); color: white; }
+        .nav-item.active { background: rgba(255,255,255,0.15); border-left-color: white; color: white; font-weight: 500; }
+        .nav-item .icon { margin-right: 0.75rem; font-size: 1.125rem; }
+        .main-content { flex: 1; margin-left: 250px; display: flex; flex-direction: column; }
+        .topbar { background: white; padding: 1rem 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; position: relative; }
+        .topbar h2 { font-size: 1.5rem; color: #333; }
+        .menu-toggle { display: none; background: none; border: none; cursor: pointer; padding: 0.5rem; margin-right: 1rem; color: #667eea; }
+        .menu-toggle svg { display: block; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 99; }
+        .overlay.active { display: block; }
+        .container { flex: 1; padding: 2rem; max-width: 1400px; width: 100%; }
+        .card { background: white; border-radius: 8px; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 2rem; }
+        .btn { display: inline-block; padding: 0.5rem 1.25rem; background: #667eea; color: white; text-decoration: none; border-radius: 6px; border: none; cursor: pointer; transition: all 0.3s; font-size: 0.875rem; font-weight: 500; }
+        .btn:hover { background: #5568d3; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(102,126,234,0.3); }
+        .btn-success { background: #52c41a; } .btn-success:hover { background: #45a617; }
+        .btn-secondary { background: #eee; color: #333; } .btn-secondary:hover { background: #ddd; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+        .form-group input, .form-group select { width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; }
+        .form-group small { display: block; margin-top: 0.5rem; color: #888; font-size: 0.875rem; }
+        .info-box { padding: 1rem; background: #f0f7ff; border-left: 4px solid #1890ff; border-radius: 4px; margin: 1rem 0; }
+        .info-box p { margin: 0; font-size: 0.875rem; line-height: 1.8; color: #666; }
+        .footer { text-align: center; padding: 1.5rem; color: #999; font-size: 0.75rem; background: white; border-top: 1px solid #e8eaed; }
+        @media (max-width: 768px) {
+            .menu-toggle { display: flex; align-items: center; justify-content: center; }
+            .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; z-index: 101; }
+            .sidebar.mobile-open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .topbar { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay" id="overlay"></div>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header"><h1>🎬 次元方舟</h1><div class="version">Java v1.0.0</div></div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">主菜单</div>
+                    <a href="/dashboard" class="nav-item"><span class="icon">📊</span><span>仪表盘</span></a>
+                    <a href="/video/list" class="nav-item"><span class="icon">🎬</span><span>视频管理</span></a>
+                    <a href="#" class="nav-item"><span class="icon">📂</span><span>分类管理</span></a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">采集与工具</div>
+                    <a href="/collect/list" class="nav-item active"><span class="icon">🔄</span><span>采集站点</span></a>
+                    <a href="/collect/namewords" class="nav-item"><span class="icon">📖</span><span>名称同义库</span></a>
+                    <a href="/collect/tasks" class="nav-item"><span class="icon">📋</span><span>采集任务</span></a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">工具箱</div>
+                    <a href="/tool/link_gen" class="nav-item"><span class="icon">🔗</span><span>链接生成器</span></a>
+                    <a href="/tool/link_compare" class="nav-item"><span class="icon">🔍</span><span>链接对比器</span></a>
+                    <a href="/tool/merge" class="nav-item"><span class="icon">🔀</span><span>视频合并</span></a>
+                </div>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="topbar">
+                <div style="display: flex; align-items: center;">
+                    <button class="menu-toggle" id="menuToggle" aria-label="菜单">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <h2 th:text="'⏰ 定时采集 - ' + ${site.name}">⏰ 定时采集</h2>
+                </div>
+                <div class="topbar-actions">
+                    <div class="user-info">
+                        <div class="user-avatar" sec:authentication="name">A</div>
+                        <span class="user-name" sec:authentication="name">admin</span>
+                    </div>
+                    <a href="/logout" class="logout-btn">退出登录</a>
+                </div>
+            </div>
+            <div class="container">
+                <div class="card">
+                    <h3 style="margin-bottom: 1.5rem;" th:text="'⏰ 定时采集配置 - ' + ${site.name}">⏰ 定时采集配置</h3>
+                    
+                    <form method="POST" action="/collect/cron/save" style="max-width: 600px;">
+                        <input type="hidden" name="siteId" th:value="${site.id}">
+                        
+                        <div class="form-group">
+                            <label>启用定时采集</label>
+                            <select name="enabled">
+                                <option value="1" th:selected="${cronConfig.enabled == 1}">启用</option>
+                                <option value="0" th:selected="${cronConfig.enabled == 0}">禁用</option>
+                            </select>
+                            <small>启用后，系统会按照设置的规则自动执行采集</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>调度模式</label>
+                            <select name="mode" id="scheduleMode" onchange="toggleScheduleMode()">
+                                <option value="interval" th:selected="${cronConfig.mode == null or cronConfig.mode == 'interval'}">间隔模式</option>
+                                <option value="cron" th:selected="${cronConfig.mode != null and cronConfig.mode == 'cron'}">定时模式</option>
+                            </select>
+                            <small>间隔模式：每隔N小时执行一次；定时模式：每天指定时间点执行</small>
+                        </div>
+                        
+                        <div class="form-group" id="intervalSettings"
+                             th:style="${cronConfig.mode != null and cronConfig.mode == 'cron'} ? 'display:none' : ''">
+                            <label>执行间隔</label>
+                            <select name="interval">
+                                <option value="1" th:selected="${cronConfig.interval == 1}">每1小时</option>
+                                <option value="2" th:selected="${cronConfig.interval == 2}">每2小时</option>
+                                <option value="3" th:selected="${cronConfig.interval == 3}">每3小时</option>
+                                <option value="6" th:selected="${cronConfig.interval == 6}">每6小时</option>
+                                <option value="12" th:selected="${cronConfig.interval == 12}">每12小时</option>
+                                <option value="24" th:selected="${cronConfig.interval == 24}">每24小时</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" id="cronSettings"
+                             th:style="${cronConfig.mode == null or cronConfig.mode != 'cron'} ? 'display:none' : ''">
+                            <label>执行时间点</label>
+                            <input type="text" name="cronHours" th:value="${cronConfig.cronHours}" placeholder="例如：08:30,14:00,20:15">
+                            <small>输入时间点（24小时制），格式为 HH:MM，多个时间用英文逗号分隔<br>
+                            例如：<code>08:30,14:00,20:15</code> 表示每天8点30分、14点、20点15分执行<br>
+                            也可简写小时：<code>0,12</code> 表示每天0点和12点整点执行</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>采集范围（小时内更新的）</label>
+                            <select name="hours">
+                                <option value="" th:selected="${#strings.isEmpty(cronConfig.hours)}">不限</option>
+                                <option value="1" th:selected="${cronConfig.hours == '1'}">1小时内</option>
+                                <option value="6" th:selected="${cronConfig.hours == '6'}">6小时内</option>
+                                <option value="12" th:selected="${cronConfig.hours == '12'}">12小时内</option>
+                                <option value="24" th:selected="${cronConfig.hours == '24'}">24小时内</option>
+                                <option value="48" th:selected="${cronConfig.hours == '48'}">48小时内</option>
+                                <option value="72" th:selected="${cronConfig.hours == '72'}">72小时内</option>
+                                <option value="168" th:selected="${cronConfig.hours == '168'}">168小时内</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>指定分类ID（留空为全部）</label>
+                            <input type="text" name="typeId" th:value="${cronConfig.typeId}" placeholder="资源站分类ID，留空采集全部">
+                        </div>
+                        
+                        <div style="margin-top: 2rem;">
+                            <button type="submit" class="btn">💾 保存设置</button>
+                            <button type="button" class="btn btn-success" style="margin-left: 0.5rem;" onclick="testExecute()">▶️ 立即测试执行</button>
+                            <a th:href="@{/collect/list}" class="btn btn-secondary" style="margin-left: 0.5rem;">返回</a>
+                        </div>
+                    </form>
+                    
+                    <hr style="margin: 2rem 0; border-color: #eee;">
+
+                    <h4 style="font-size: 1rem; margin-bottom: 0.75rem;">宝塔面板设置</h4>
+                    <ol style="font-size: 0.875rem; color: #666; margin-bottom: 1rem; padding-left: 1.25rem; line-height: 2;">
+                        <li>打开宝塔面板 → 计划任务</li>
+                        <li>任务类型：<strong>访问URL</strong></li>
+                        <li>执行周期：根据你的需要设置（如每天 8:00 和 20:00 各一次）</li>
+                        <li>URL 地址（仅采集当前站点）：</li>
+                    </ol>
+                    <div style="background:#1e1e1e;color:#d4d4d4;padding:12px;border-radius:4px;font-family:monospace;font-size:13px;word-break:break-all;user-select:all;"
+                         th:text="${'http://' + #httpServletRequest.serverName + (#httpServletRequest.serverPort != 80 ? ':' + #httpServletRequest.serverPort : '') + '/collect/cron/run?site_id=' + site.id}">
+                    </div>
+                    <p style="font-size: 0.75rem; color: #999; margin-top: 0.5rem;">采集所有已启用定时采集的站点：<code>/collect/cron/run</code></p>
+
+                    <div class="info-box" style="margin-top: 1.5rem;">
+                        <h4 style="font-size: 1rem; margin-bottom: 0.75rem;">🎯 定时采集说明</h4>
+                        <p>
+                            ✅ 应用内置调度器每分钟自动检查「间隔模式 / 定时模式」配置并执行采集<br>
+                            ✅ 也可通过上方宝塔 URL 手动触发（适合精确到分钟的定时）<br>
+                            ✅ 「立即测试执行」会按当前配置创建任务并在后台运行
+                        </p>
+                    </div>
+                    
+                    <div th:if="${cronConfig.lastRun != null and cronConfig.lastRun > 0}" style="font-size: 0.875rem; color: #888; margin-top: 1rem;">
+                        上次执行时间：<span th:text="${#dates.format(new java.util.Date(cronConfig.lastRun * 1000), 'yyyy-MM-dd HH:mm:ss')}"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="footer"><p>次元方舟视频管理系统 v1.0.0 &copy; 2024 | Java Spring Boot 强力驱动</p></div>
+        </main>
+    </div>
+    <script>
+        (function() {
+            var menuToggle = document.getElementById('menuToggle');
+            var sidebar = document.getElementById('sidebar');
+            var overlay = document.getElementById('overlay');
+            
+            if (menuToggle && sidebar && overlay) {
+                menuToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('mobile-open');
+                    overlay.classList.toggle('active');
+                });
+                
+                overlay.addEventListener('click', function() {
+                    sidebar.classList.remove('mobile-open');
+                    overlay.classList.remove('active');
+                });
+                
+                var navLinks = sidebar.querySelectorAll('.nav-item');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        if (window.innerWidth <= 768) {
+                            sidebar.classList.remove('mobile-open');
+                            overlay.classList.remove('active');
+                        }
+                    });
+                });
+            }
+        })();
+        
+        function toggleScheduleMode() {
+            var mode = document.getElementById('scheduleMode').value;
+            var intervalSettings = document.getElementById('intervalSettings');
+            var cronSettings = document.getElementById('cronSettings');
+            
+            if (mode === 'interval') {
+                intervalSettings.style.display = 'block';
+                cronSettings.style.display = 'none';
+            } else {
+                intervalSettings.style.display = 'none';
+                cronSettings.style.display = 'block';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', toggleScheduleMode);
+        
+        function testExecute() {
+            if (!confirm('确认立即执行一次采集任务？')) return;
+            
+            var btn = event.target;
+            var originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = '⏳ 执行中...';
+            btn.style.background = '#6c757d';
+            
+            var siteId = document.querySelector('input[name="siteId"]').value;
+            
+            fetch('/collect/cron/test/' + siteId)
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    btn.style.background = '';
+                    
+                    if (res.code === 0) {
+                        alert('✅ ' + res.msg);
+                        window.location.href = '/collect/tasks';
+                    } else {
+                        alert('❌ ' + res.msg);
+                    }
+                })
+                .catch(function(err) {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    btn.style.background = '';
+                    alert('❌ 请求失败：' + err.message);
+                });
+        }
+    </script>
+</body>
+</html>

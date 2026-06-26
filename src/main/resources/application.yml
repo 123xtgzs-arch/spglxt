@@ -1,0 +1,158 @@
+# 次元方舟视频管理系统 - Spring Boot 配置文件
+# 配置项支持从 .env 文件读取环境变量
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /
+    session:
+      timeout: ${SESSION_TIMEOUT:30m}
+  tomcat:
+    uri-encoding: UTF-8
+    threads:
+      max: 200
+      min-spare: 10
+
+spring:
+  application:
+    name: ${APP_NAME:spglxt-video-system}
+
+  # 发布包：优先读取 config/application.yml（与 ysname 相同）
+  config:
+    import: optional:file:./config/application.yml
+
+  # 数据源配置 (连接苹果CMS数据库)
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:cyfzdmw}?useUnicode=true&characterEncoding=${DB_CHARSET:UTF-8}&useSSL=false&serverTimezone=${TIMEZONE:Asia/Shanghai}&allowPublicKeyRetrieval=true
+    username: ${DB_USER:cyfzdmw}
+    password: ${DB_PASSWORD:XP5j4AbDiJNy87Fr}
+    hikari:
+      pool-name: HikariPool-SPGLXT
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-timeout: ${DB_POOL_TIMEOUT:30000}
+      connection-test-query: SELECT 1
+
+  # JPA 配置
+  jpa:
+    database: mysql
+    show-sql: ${SHOW_SQL:true}
+    hibernate:
+      ddl-auto: none  # 不自动创建表,使用已有的苹果CMS数据库
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl  # 保持表名不变
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+        use_sql_comments: true
+    open-in-view: false
+
+  # Redis 配置
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+      timeout: ${REDIS_TIMEOUT:5000}ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+
+  # Session 配置 (使用Redis存储)
+  session:
+    store-type: redis
+    timeout: ${SESSION_TIMEOUT:30m}
+    redis:
+      namespace: spglxt:session
+
+  # Thymeleaf 模板引擎配置
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+    cache: ${TEMPLATE_CACHE:false}  # 开发环境关闭缓存
+    servlet:
+      content-type: text/html
+
+  # 静态资源配置
+  web:
+    resources:
+      static-locations: classpath:/static/,classpath:/public/
+      cache:
+        period: 3600  # 静态资源缓存时间(秒)
+
+  # 文件上传配置
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: ${UPLOAD_MAX_FILE_SIZE:50MB}
+      max-request-size: ${UPLOAD_MAX_REQUEST_SIZE:50MB}
+
+  # Jackson 配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+
+# 应用自定义配置
+app:
+  name: ${APP_NAME:次元方舟视频管理系统}
+  version: ${APP_VERSION:1.0.0}
+  
+  # 数据库表前缀
+  db:
+    prefix: ${DB_PREFIX:mac_}
+  
+  # 管理员配置
+  admin:
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD:admin123}
+  
+  # JWT 配置
+  jwt:
+    secret: ${JWT_SECRET:spglxt-video-system-jwt-secret-key-2024}
+    expiration: ${JWT_EXPIRATION:604800000}  # 7天(毫秒)
+    header: Authorization
+    token-prefix: Bearer 
+  
+  # 分页配置
+  page:
+    default-size: ${PAGE_SIZE:20}
+    max-size: ${PAGE_MAX_SIZE:100}
+
+# 日志配置
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    com.spglxt: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  file:
+    name: ${LOG_FILE:logs/spglxt.log}
+    max-size: ${LOG_MAX_SIZE:10MB}
+    max-history: ${LOG_MAX_HISTORY:30}
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n'
+    file: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n'
+
+# Management Endpoints (监控端点)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
