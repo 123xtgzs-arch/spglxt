@@ -1,5 +1,7 @@
-# 在 GitHub Linux 服务器上编译 GraalVM 原生 spglxt（宝塔可用，无需 Java）
-# 用法：推送到 GitHub → Actions → Build Linux Native → 下载 spglxt.zip
+# 复制此文件内容到 GitHub 网页：
+# 仓库 → Add file → Create new file
+# 路径填: .github/workflows/build-native-linux.yml
+# 粘贴下面全部内容 → Commit
 
 name: Build Linux Native
 
