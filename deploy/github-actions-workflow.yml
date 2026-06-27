@@ -8,7 +8,7 @@ on:
       - 'src/**'
       - 'pom.xml'
       - 'config/**'
-      - 'deploy/github-actions-workflow.yml'
+      - 'deploy/**'
       - '.github/workflows/build-native-linux.yml'
 
 jobs:
@@ -19,6 +19,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: false
+          swap-storage: true
 
       - name: Setup GraalVM
         uses: graalvm/setup-graalvm@v1
@@ -33,6 +44,7 @@ jobs:
 
       - name: Verify toolchain
         run: |
+          free -h
           java -version
           native-image --version
           mvn -version
@@ -40,7 +52,8 @@ jobs:
       - name: Maven native build
         run: mvn -B clean package -Pnative -DskipTests -e
         env:
-          MAVEN_OPTS: -Xmx7g
+          # Maven 本身少占内存，把 RAM 留给 native-image (-J-Xmx6g)
+          MAVEN_OPTS: -Xmx512m
 
       - name: Package release (spglxt + config)
         run: |
@@ -60,7 +73,8 @@ jobs:
           fi
           cd release
           zip -r ../spglxt.zip spglxt
-          echo "Binary size: $(du -h ../spglxt.zip | cut -f1)"
+          ls -lh ../spglxt.zip
+          ls -lh ../target/spglxt
 
       - name: Upload spglxt.zip
         uses: actions/upload-artifact@v4

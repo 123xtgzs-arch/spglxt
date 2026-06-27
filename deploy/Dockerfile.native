@@ -12,7 +12,7 @@ COPY pom.xml settings.xml ./
 COPY src ./src
 COPY config ./config
 
-ENV MAVEN_OPTS="-Xmx4g"
+ENV MAVEN_OPTS="-Xmx512m"
 ENV LANG=C.UTF-8
 
 RUN mvn -B package -Pnative -DskipTests -s settings.xml \

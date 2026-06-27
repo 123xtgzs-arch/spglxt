@@ -238,7 +238,8 @@
                                 <buildArg>--enable-http</buildArg>
                                 <buildArg>--enable-https</buildArg>
                                 <buildArg>--enable-url-protocols=http,https,jar</buildArg>
-                                <buildArg>-J-Xmx4g</buildArg>
+                                <buildArg>-J-Xmx6g</buildArg>
+                                <buildArg>-H:NumberOfThreads=2</buildArg>
                             </buildArgs>
                         </configuration>
                     </plugin>
