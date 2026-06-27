@@ -1,8 +1,3 @@
-# 复制此文件内容到 GitHub 网页：
-# 仓库 → Add file → Create new file
-# 路径填: .github/workflows/build-native-linux.yml
-# 粘贴下面全部内容 → Commit
-
 name: Build Linux Native
 
 on:
@@ -13,12 +8,13 @@ on:
       - 'src/**'
       - 'pom.xml'
       - 'config/**'
+      - 'deploy/github-actions-workflow.yml'
       - '.github/workflows/build-native-linux.yml'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - name: Checkout
@@ -42,13 +38,84 @@ jobs:
           mvn -version
 
       - name: Maven native build
-        run: mvn -B clean package -Pnative -DskipTests
+        run: mvn -B clean package -Pnative -DskipTests -e
         env:
-          MAVEN_OPTS: -Xmx4g
+          MAVEN_OPTS: -Xmx7g
 
       - name: Package release (spglxt + config)
         run: |
           set -e
+          test -f target/spglxt
+          OUT=release/spglxt
+          rm -rf release spglxt.zip
+          mkdir -p "$OUT/config"
+          cp target/spglxt "$OUT/spglxt"
+          chmod +x "$OUT/spglxt"
+          cp -r config/* "$OUT/config/" 2>/dev/null || true
+          if [ -f config/application.yml.example ] && [ ! -f "$OUT/config/application.yml" ]; then
+            cp config/application.yml.example "$OUT/config/application.yml"
+          fi
+          if [ -f .env.example ]; then
+            cp .env.example "$OUT/config/.env"
+          fi
+          cd release
+          zip -r ../spglxt.zip spglxt
+          echo "Binary size: $(du -h ../spglxt.zip | cut -f1)"
+
+      - name: Upload spglxt.zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: spglxt-linux-native
+          path: spglxt.zip
+          retention-days: 30
+name: Build Linux Native
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths:
+      - 'src/**'
+      - 'pom.xml'
+      - 'config/**'
+      - 'deploy/github-actions-workflow.yml'
+      - '.github/workflows/build-native-linux.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '17'
+          distribution: 'graalvm-community'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: 'maven'
+
+      - name: Install native-image
+        run: gu install native-image
+
+      - name: Verify toolchain
+        run: |
+          java -version
+          native-image --version
+          mvn -version
+
+      - name: Maven native build
+        run: mvn -B clean package -Pnative -DskipTests -e
+        env:
+          MAVEN_OPTS: -Xmx7g
+
+      - name: Package release (spglxt + config)
+        run: |
+          set -e
+          test -f target/spglxt
           OUT=release/spglxt
           rm -rf release spglxt.zip
           mkdir -p "$OUT/config"
