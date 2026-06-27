@@ -110,13 +110,6 @@
             <version>5.8.16</version>
         </dependency>
 
-        <!-- Dotenv Java (读取.env文件) -->
-        <dependency>
-            <groupId>io.github.cdimascio</groupId>
-            <artifactId>dotenv-java</artifactId>
-            <version>3.0.0</version>
-        </dependency>
-
         <!-- Apache Commons Lang3 -->
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -212,6 +205,14 @@
                         <configuration>
                             <excludeDevtools>true</excludeDevtools>
                         </configuration>
+                        <executions>
+                            <execution>
+                                <id>process-aot</id>
+                                <goals>
+                                    <goal>process-aot</goal>
+                                </goals>
+                            </execution>
+                        </executions>
                     </plugin>
                     <plugin>
                         <groupId>org.graalvm.buildtools</groupId>
